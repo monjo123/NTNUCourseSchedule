@@ -50,7 +50,6 @@ const elements = {
     activeFilters: document.getElementById("activeFilters"),
     searchInput: document.getElementById("searchInput"),
     deptSelect: document.getElementById("deptSelect"),
-    kindSelect: document.getElementById("kindSelect"),
     semesterSelect: document.getElementById("semesterSelect"),
     sortSelect: document.getElementById("sortSelect"),
     resultsLabel: document.getElementById("resultsLabel"),
@@ -112,11 +111,6 @@ function wireEvents() {
         renderAll();
     });
 
-    elements.kindSelect.addEventListener("change", () => {
-        state.kind = elements.kindSelect.value;
-        state.visibleCount = 48;
-        renderAll();
-    });
 
     elements.sortSelect.addEventListener("change", () => {
         state.sort = elements.sortSelect.value;
@@ -136,7 +130,6 @@ function wireEvents() {
         state.visibleCount = 48;
         elements.searchInput.value = "";
         elements.deptSelect.value = "ALL";
-        elements.kindSelect.value = "ALL";
         elements.sortSelect.value = "name";
         renderAll();
     });
@@ -350,15 +343,6 @@ function wireEvents() {
 }
 
 function renderStaticControls() {
-    elements.kindSelect.innerHTML = [
-        ["ALL", "全部類型"],
-        ["半", "半學期"],
-        ["全", "全學期"],
-        ["1/2", "1/2"],
-        ["2/3", "2/3"]
-    ]
-        .map(([value, label]) => `<option value="${value}">${label}</option>`)
-        .join("");
 
     elements.sortSelect.innerHTML = [
         ["name", "課名"],
@@ -418,10 +402,6 @@ function populateFilters() {
         ...depts.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
     ].join("");
 
-    elements.kindSelect.innerHTML = [
-        `<option value="ALL">全部類型</option>`,
-        ...kinds.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
-    ].join("");
 }
 
 function renderAll() {
