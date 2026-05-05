@@ -633,7 +633,22 @@ function renderPlanner() {
         const cells = DAYS.map(day => {
             const arr = daySectionMap.get(day).get(sec) || [];
             return `<div class="schedule-cell">
-        ${arr.length ? arr.map(item => `<div class="schedule-item" data-serial-no="${escapeHtml(item.course.serial_no)}" style="border-color: ${item.color}33; background: ${item.color}14; cursor: pointer;"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.time)}</small></div>`).join('') : ''}
+        ${arr.length ? arr.map(item => {
+                const isConflict = conflictSet.has(item.course.serial_no);
+
+                return `
+    <div class="schedule-item"
+      data-serial-no="${escapeHtml(item.course.serial_no)}"
+      style="
+        border-color: ${isConflict ? '#b42318' : item.color}33;
+        background: ${isConflict ? 'rgba(180,35,24,0.15)' : item.color + '14'};
+        cursor: pointer;
+      ">
+      <strong>${escapeHtml(item.title)}</strong>
+      <small>${escapeHtml(item.time)}</small>
+    </div>
+  `;
+            }).join('') : ''}
       </div>`;
         }).join('');
         return `<div class="schedule-body-row">
