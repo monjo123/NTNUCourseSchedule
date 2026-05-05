@@ -1,0 +1,30 @@
+name: Fetch NTNU Courses
+
+on:
+  schedule:
+    - cron: "0 1 * * 1" # 每週一台北時間 09:00 (UTC 01:00)
+  workflow_dispatch:``
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      - run: npm run fetch
+      - run: npm run arrange
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add public/courses.json public/courses.non-empty.json
+          git commit -m "update courses" || exit 0
+          git push
