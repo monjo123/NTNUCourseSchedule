@@ -666,56 +666,6 @@ function renderPlanner() {
             if (course) showCourseDetail(course);
         });
     });
-
-    // Allow clicking an empty area of a cell to scroll that column into full view
-    elements.scheduleBoard.querySelectorAll('.schedule-cell').forEach((cell) => {
-        cell.addEventListener('click', (e) => {
-            // if user clicked a schedule item, let its handler run instead
-            if (e.target.closest('.schedule-item')) return;
-            // Smooth scroll the schedule container so the clicked cell aligns to start
-            try {
-                cell.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-            } catch (err) {
-                // fallback: compute left offset
-                const container = elements.scheduleBoard;
-                container.scrollLeft = cell.offsetLeft - (container.clientWidth * 0.05);
-            }
-        });
-    });
-
-    const container = elements.scheduleBoard;
-
-    // Enable drag-to-scroll (mouse/touch) on the schedule container
-    let isDragging = false;
-    let dragStartX = 0;
-    let dragStartScroll = 0;
-
-    container.addEventListener('pointerdown', (e) => {
-        // only left button
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        isDragging = true;
-        dragStartX = e.clientX;
-        dragStartScroll = container.scrollLeft;
-        try { container.setPointerCapture(e.pointerId); } catch (err) {}
-        container.classList.add('dragging');
-    });
-
-    container.addEventListener('pointermove', (e) => {
-        if (!isDragging) return;
-        e.preventDefault();
-        const delta = e.clientX - dragStartX;
-        container.scrollLeft = dragStartScroll - delta;
-    });
-
-    const endDrag = (e) => {
-        if (!isDragging) return;
-        isDragging = false;
-        try { container.releasePointerCapture && container.releasePointerCapture(e.pointerId); } catch (err) {}
-        container.classList.remove('dragging');
-    };
-
-    container.addEventListener('pointerup', endDrag);
-    container.addEventListener('pointercancel', endDrag);
 }
 
 function getFilteredCourses() {
