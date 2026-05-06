@@ -3,7 +3,9 @@
 NTNU Course Schedule 是一個可直接部署到 GitHub Pages 的師大課程規劃網站。使用者可以在線上搜尋課程、加入個人規劃、檢查衝堂、匯出/匯入 CSV，並依學期獨立保存規劃內容。
 
 https://monjo123.github.io/NTNUCourseSchedule/
-![Uploading FireShot Capture 002 - NTNU 選課規劃系統 - [monjo123.github.io].png…]()
+
+<img width="3071" height="2744" alt="FireShot Capture 002 - NTNU 選課規劃系統 -  monjo123 github io" src="https://github.com/user-attachments/assets/a0ca2502-e837-4629-8ae9-2718c143b895" />
+
 ### 功能
 
 - 課程搜尋與篩選：可依關鍵字、系所、課程類型與排序方式快速找課。
