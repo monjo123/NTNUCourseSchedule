@@ -182,22 +182,37 @@ export async function fetchAll(year, term) {
 // CLI run
 // =====================
 if (import.meta.url === `file://${process.argv[1]}`) {
-  // Fetch multiple semester options and save each under public/{year}_{term}/courses.json
+  // Determine semesters to fetch based on current year
+  // Calculate current ROC (Republic of China) year
+  const currentYear = new Date().getFullYear();
+  const rocYear = currentYear - 1912;
+
+  // Generate semesters: current year and next year, each with terms 1 and 2
   const semesters = [
-    { year: 113, term: 1 },
-    { year: 113, term: 2 },
-    { year: 114, term: 1 },
-    { year: 114, term: 2 }
+    { year: rocYear, term: 1 },
+    { year: rocYear, term: 2 },
+    { year: rocYear + 1, term: 1 },
+    { year: rocYear + 1, term: 2 }
   ];
+
+  console.log(`📅 current year: ${currentYear} (ROC ${rocYear})`);
+  console.log(`📋 semesters to fetch: ${semesters.map(s => `${s.year}-${s.term}`).join(", ")}\n`);
 
   for (const sem of semesters) {
     try {
-      console.log(`\n🔎 fetching ${sem.year}-${sem.term} ...`);
+      console.log(`🔎 fetching ${sem.year}-${sem.term} ...`);
       const data = await fetchAll(sem.year, sem.term);
+
+      // Only write if data exists
+      if (!data || data.length === 0) {
+        console.log(`⏭️  skipped: no data available for ${sem.year}-${sem.term}`);
+        continue;
+      }
+
       const dir = `public/${sem.year}_${sem.term}`;
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(`${dir}/courses.json`, JSON.stringify(data, null, 2));
-      console.log(`✅ saved: ${dir}/courses.json`);
+      console.log(`✅ saved: ${dir}/courses.json (${data.length} courses)`);
     } catch (err) {
       console.error(`❌ failed to fetch ${sem.year}-${sem.term}:`, err && err.message ? err.message : err);
     }
