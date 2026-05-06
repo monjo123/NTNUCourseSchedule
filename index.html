@@ -103,6 +103,25 @@
       line-height: 1.75;
     }
 
+    .update-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      width: fit-content;
+      max-width: 62rem;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: rgba(217, 119, 6, 0.12);
+      border: 1px solid rgba(217, 119, 6, 0.28);
+      color: #7a3400;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .update-notice strong {
+      color: #6a2b00;
+    }
+
     .hero-actions {
       display: flex;
       flex-wrap: wrap;
@@ -462,6 +481,12 @@
     .schedule {
       display: grid;
       margin-top: 14px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+      position: relative;
+      cursor: grab;
+      touch-action: pan-x;
     }
 
     .schedule-table {
@@ -471,6 +496,8 @@
       border-radius: var(--radius-md);
       overflow: hidden;
       background: rgba(255, 255, 255, 0.78);
+      /* Let the table take its natural width so columns don't shrink; browser will show scrollbar */
+      width: max-content;
     }
 
     .schedule-header-row,
@@ -507,6 +534,11 @@
       border-bottom: 2px solid rgba(19, 78, 74, 0.16);
     }
 
+    .schedule-cell-header,
+    .schedule-cell {
+      scroll-snap-align: start;
+    }
+
     .schedule-cell-header:last-child {
       border-right: none;
     }
@@ -521,6 +553,9 @@
       gap: 6px;
       align-content: start;
       overflow-y: auto;
+      /* Prevent individual cells from shrinking; give each a reasonable min width */
+      min-width: 160px;
+      flex: none;
     }
 
     .schedule-body-row .schedule-cell:last-child {
@@ -541,6 +576,10 @@
 
     .schedule-item strong { font-size: 0.8rem; line-height: 1.2; }
     .schedule-item small { color: var(--muted); font-size: 0.72rem; }
+
+    /* scroll buttons removed */
+
+    .schedule.dragging { cursor: grabbing; user-select: none; }
 
     .empty-state {
       padding: 20px;
@@ -574,7 +613,8 @@
       }
 
       .schedule-table {
-        grid-template-columns: 50px repeat(7, 1fr);
+        grid-template-columns: 50px repeat(7, minmax(160px, 1fr));
+        width: max-content;
       }
 
       .toolbar-grid {
@@ -594,9 +634,14 @@
         grid-template-columns: 1fr;
       }
 
+      .update-notice {
+        width: 100%;
+      }
+
       .schedule-table {
-        grid-template-columns: 45px repeat(7, 1fr);
+        grid-template-columns: 45px repeat(7, minmax(140px, 1fr));
         font-size: 0.7rem;
+        width: max-content;
       }
 
       .schedule-cell {
@@ -779,6 +824,10 @@
       <div class="eyebrow">NTNU Course Planner</div>
       <h1>選課規劃系統</h1>
       <p>把課程資料變成可搜尋、可加入、可檢查衝突的選課規劃工具。支援課程搜尋、條件篩選、學分統計、週課表檢視，以及本機保存與匯出。</p>
+      <div class="update-notice" role="status" aria-live="polite">
+        <strong>更新提醒</strong>
+        <span>資料會在每週一 09:00 自動更新，更新期間系統可能出現卡頓，約十分鐘後會恢復正常。</span>
+      </div>
       <div class="hero-actions">
         <button class="btn primary" id="exportBtn" type="button">匯出規劃</button>
         <button class="btn ghost" id="importBtn" type="button">匯入規劃</button>
