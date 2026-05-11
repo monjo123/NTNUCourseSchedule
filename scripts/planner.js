@@ -73,6 +73,8 @@ const elements = {
     modalRoom: document.getElementById("modalRoom"),
     modalCredit: document.getElementById("modalCredit"),
     modalSeat: document.getElementById("modalSeat"),
+    modalRestrict: document.getElementById("modalRestrict"),
+    modalRestrictRow: document.getElementById("modalRestrictRow"),
     modalComment: document.getElementById("modalComment"),
     modalCommentRow: document.getElementById("modalCommentRow"),
     modalRemoveBtn: document.getElementById("modalRemoveBtn"),
@@ -153,7 +155,6 @@ function wireEvents() {
         try {
             await loadCourses();
             renderAll();
-            alert(`已切換至學期 ${state.semester.replace('_', '-')}，目前規劃已清空。`);
         } catch (err) {
             alert('無法載入該學期的課程資料：' + err.message);
         }
@@ -216,7 +217,7 @@ function wireEvents() {
         const picker = document.getElementById('slotPicker');
         const pickerContainer = document.getElementById('slotPickerContainer');
         if (picker) {
-            const FULL_SECTIONS = [...Array.from({ length: 10 }, (_, i) => String(i + 1)), 'A', 'B', 'C'];
+            const FULL_SECTIONS = ['0', ...Array.from({ length: 10 }, (_, i) => String(i + 1)), 'A', 'B', 'C', 'D'];
             // Build header row with day checkboxes
             let html = '';
             html += `<div style="display:flex; align-items:center; justify-content:center; font-weight:600;">節次\\星期</div>`;
@@ -233,6 +234,16 @@ function wireEvents() {
             }
 
             picker.innerHTML = html;
+            // Ensure container is not height-limited (always fully visible)
+            try {
+                if (pickerContainer) {
+                    pickerContainer.style.maxHeight = 'none';
+                    pickerContainer.style.overflow = 'visible';
+                    pickerContainer.style.overflowY = 'visible';
+                }
+                const toggleBtn = document.getElementById('toggleSlotPicker');
+                if (toggleBtn) toggleBtn.style.display = 'none';
+            } catch (e) {}
 
             // Delegate change handling for both slot and day checkboxes
             picker.addEventListener('change', (e) => {
@@ -313,28 +324,39 @@ function wireEvents() {
             if (toggleBtn && pickerContainer) {
                 let isCollapsed = false;
 
-                // 2. 定義統一的切換功能[cite: 1]
+                function computeAndSetExpandedHeight() {
+                    const rect = pickerContainer.getBoundingClientRect();
+                    const bottomGap = 20; // leave small gap from bottom
+                    const minHeight = 160;
+                    const available = Math.max(minHeight, window.innerHeight - rect.top - bottomGap);
+                    pickerContainer.style.maxHeight = `${available}px`;
+                    pickerContainer.style.overflowY = 'auto';
+                    pickerContainer.style.webkitOverflowScrolling = 'touch';
+                }
+
                 const toggleAction = () => {
                     isCollapsed = !isCollapsed;
                     if (isCollapsed) {
                         pickerContainer.style.maxHeight = '0';
                         pickerContainer.style.overflow = 'hidden';
-                        toggleBtn.textContent = '◀'; // 原程式碼中的圖示修復
+                        toggleBtn.textContent = '▶';
                     } else {
-                        pickerContainer.style.maxHeight = '500px';
+                        computeAndSetExpandedHeight();
                         toggleBtn.textContent = '▼';
                     }
                 };
 
-                // 3. 保留原本按鈕的點擊觸發[cite: 1]
                 toggleBtn.addEventListener('click', toggleAction);
 
-                // 4. 新增：文字行「點兩下」觸發切換[cite: 1]
                 if (labelText) {
-                    // 加上 user-select: none 防止頻繁點擊導致文字被選取（變藍色）
-                    labelText.style.userSelect = "none";
+                    labelText.style.userSelect = 'none';
                     labelText.addEventListener('dblclick', toggleAction);
                 }
+
+                // Recompute on resize when expanded
+                window.addEventListener('resize', () => {
+                    if (!isCollapsed) computeAndSetExpandedHeight();
+                });
             }
         }
     } catch (e) {
@@ -536,6 +558,7 @@ function renderResults() {
           <span class="meta">${escapeHtml(formatTimeLabel(course))}</span>
           <span class="meta">${escapeHtml(getRoomText(course))}</span>
           <span class="meta">名額 ${escapeHtml(seatText(course))}</span>
+                    ${course.restrict ? `<span class="meta">限制 ${escapeHtml(String(course.restrict).trim())}</span>` : ""}
           ${course.comment ? `<span class="meta">備註：${escapeHtml(course.comment)}</span>` : ""}
         </div>
 
@@ -568,6 +591,7 @@ function renderPlanner() {
     } else {
         elements.selectedList.innerHTML = selected.map((course) => {
             const conflict = conflictSet.has(course.serial_no);
+            const restrictionSummary = course.restrictionText ? course.restrictionText.replace(/\n+/g, " / ") : "";
             return `
         <article class="selected-card">
           <header>
@@ -588,6 +612,7 @@ function renderPlanner() {
             <span class="meta">名額 ${escapeHtml(seatText(course))}</span>
             <span class="meta">時間 ${escapeHtml(formatTimeLabel(course))}</span>
             <span class="meta">教室 ${escapeHtml(getRoomText(course))}</span>
+                        ${restrictionSummary ? `<span class="meta">限制 ${escapeHtml(restrictionSummary)}</span>` : ""}
             <span class="meta">流水號 ${escapeHtml(course.serial_no || "-")}</span>
           </div>
         </article>
@@ -733,6 +758,15 @@ function showCourseDetail(course) {
     elements.modalRoom.textContent = extractRoom(getScheduleTime(course)) || "-";
     elements.modalCredit.textContent = course.credit || "-";
     elements.modalSeat.textContent = `${course.counter || 0}/${course.limit_count_h || 0}`;
+
+    const restrictionText = course.restrictionText || String(course.restrict || "").trim();
+    if (restrictionText) {
+        elements.modalRestrict.textContent = restrictionText;
+        elements.modalRestrictRow.style.display = "";
+    } else {
+        elements.modalRestrict.textContent = "";
+        elements.modalRestrictRow.style.display = "none";
+    }
 
     if (course.comment) {
         elements.modalComment.textContent = course.comment;
@@ -944,11 +978,13 @@ function summarizeSlots(timeText) {
         byDay.set(s.day, arr);
     }
 
-    // Helper to convert 11-13 to A-C
+    // Helper to convert special sections to letter labels
     const convertSectionNumber = (num) => {
+        if (num === 0) return '0';
         if (num === 11) return 'A';
         if (num === 12) return 'B';
         if (num === 13) return 'C';
+        if (num === 14) return 'D';
         return num;
     };
 
@@ -958,11 +994,16 @@ function summarizeSlots(timeText) {
         if (!items || items.length === 0) continue;
 
         // collect numeric orders or keep letter labels
-        const orders = items.map((it) => Number.isFinite(it.order) ? it.order : it.section).filter(Boolean);
+        const orders = items
+            .map((it) => Number.isFinite(it.order) ? it.order : it.section)
+            .filter((value) => value !== null && value !== undefined && value !== "");
         const numeric = orders.every((v) => typeof v === 'number');
 
         if (numeric) {
             const uniq = Array.from(new Set(orders)).sort((a, b) => a - b);
+            if (uniq.length === 0) {
+                continue;
+            }
             // compress contiguous ranges
             const ranges = [];
             let start = uniq[0], end = uniq[0];
@@ -1088,6 +1129,10 @@ function shortTitle(course) {
     return course.chn_name || course.eng_name || course.course_code || course.serial_no;
 }
 
+function formatRestrictionText(course) {
+    return String(course?.restrict || "").trim();
+}
+
 function formatCredit(value) {
     return Number.isFinite(value) ? value.toFixed(1) : "0.0";
 }
@@ -1108,6 +1153,7 @@ function normalizeCourse(course) {
         limitCount: Number.parseInt(course.limit_count_h || course.limit || course.counter || "0", 10) || 0,
         scheduleTime,
         roomText: getRoomText(course),
+        restrictionText: formatRestrictionText(course),
         searchText: [
             course.chn_name,
             course.eng_name,
@@ -1115,6 +1161,7 @@ function normalizeCourse(course) {
             course.course_code,
             scheduleTime,
             getRoomText(course),
+            formatRestrictionText(course),
             course.comment,
             course.dept_chiabbr,
             course.dept_code,
@@ -1185,7 +1232,7 @@ function exportScheduleTable() {
     }
 
     // Build schedule map
-    const FULL_SECTIONS = [...Array.from({ length: 10 }, (_, i) => String(i + 1)), 'A', 'B', 'C'];
+    const FULL_SECTIONS = ['0', ...Array.from({ length: 10 }, (_, i) => String(i + 1)), 'A', 'B', 'C', 'D'];
     const daySectionMap = new Map(DAYS.map((d) => [d, new Map(FULL_SECTIONS.map((s) => [s, []]))]));
 
     for (const course of selected) {
@@ -1323,7 +1370,7 @@ function importScheduleTable(file) {
             lines.splice(0, 1);
         }
 
-        const FULL_SECTIONS = [...Array.from({ length: 10 }, (_, i) => String(i + 1)), 'A', 'B', 'C'];
+        const FULL_SECTIONS = ['0', ...Array.from({ length: 10 }, (_, i) => String(i + 1)), 'A', 'B', 'C', 'D'];
 
         // Extract all courses with title, serial number, and their occurrence times
         const coursesFromFile = [];
