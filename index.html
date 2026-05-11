@@ -255,6 +255,21 @@
       display: grid;
       grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 0.7fr));
       gap: 12px;
+      align-items: start;
+    }
+
+    /* Ensure deptSelectMenu options each occupy their own line */
+    #deptSelectMenu label {
+      display: block;
+      width: 100%;
+      padding: 6px 4px;
+      cursor: pointer;
+      white-space: normal;
+    }
+
+    #deptSelectMenu .dept-checkbox {
+      margin-right: 8px;
+      vertical-align: middle;
     }
 
     .field {
@@ -869,7 +884,11 @@
               </div>
               <div class="field">
                 <label for="deptSelect">系所/分類</label>
-                <select id="deptSelect"></select>
+                <button id="deptSelectToggle" type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border:1px solid rgba(0,0,0,0.08); border-radius:10px; background:rgba(255,255,255,0.95); cursor:pointer;">
+                  <span id="deptSelectLabel">全部系所/分類</span>
+                  <span aria-hidden="true">▾</span>
+                </button>
+                <div id="deptSelectMenu" style="display:none; margin-top:8px; max-height:180px; overflow:auto; padding:8px; border:1px solid rgba(0,0,0,0.08); border-radius:10px; background:rgba(255,255,255,0.98);"></div>
               </div>
               <div class="field">
                 <label for="semesterSelect">學期</label>

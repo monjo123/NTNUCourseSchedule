@@ -1,6 +1,6 @@
 const STORAGE_KEY = "ntnu-course-plan-v1";
 const COURSE_SOURCES = ["./public/courses.non-empty.json", "./public/courses.json"];
-const DEFAULT_SEMESTER = localStorage.getItem('ntnu-course-semester') || '114_2';
+const DEFAULT_SEMESTER = localStorage.getItem('ntnu-course-semester');
 const DAYS = ["一", "二", "三", "四", "五", "六", "日"];
 const DAY_LABELS = {
     一: "星期一",
@@ -31,10 +31,10 @@ const SECTION_ORDER_REVERSE = Object.fromEntries(
 const state = {
     courses: [],
     semester: DEFAULT_SEMESTER,
-    selectedIds: new Set(loadSelection(DEFAULT_SEMESTER)),
+    selectedIds: new Set(),
     selectedSlots: new Set(),
     query: "",
-    dept: "ALL",
+    dept: new Set(),
     kind: "ALL",
     sort: "name",
     visibleCount: 48,
@@ -49,7 +49,9 @@ const elements = {
     summaryGrid: document.getElementById("summaryGrid"),
     activeFilters: document.getElementById("activeFilters"),
     searchInput: document.getElementById("searchInput"),
-    deptSelect: document.getElementById("deptSelect"),
+    deptSelectToggle: document.getElementById("deptSelectToggle"),
+    deptSelectLabel: document.getElementById("deptSelectLabel"),
+    deptSelectMenu: document.getElementById("deptSelectMenu"),
     semesterSelect: document.getElementById("semesterSelect"),
     sortSelect: document.getElementById("sortSelect"),
     resultsLabel: document.getElementById("resultsLabel"),
@@ -92,6 +94,50 @@ init().catch((error) => {
 async function init() {
     wireEvents();
     renderStaticControls();
+    // Determine default semester: prefer saved value, otherwise pick the latest option in the select
+    try {
+        const saved = localStorage.getItem('ntnu-course-semester');
+        if (saved) {
+            state.semester = saved;
+        } else if (elements.semesterSelect && elements.semesterSelect.options.length) {
+                // Try to detect the latest semester by checking available public/{year}_{term} files
+                const options = Array.from(elements.semesterSelect.options).map(o => o.value);
+                // iterate from newest (end) to oldest
+                for (let i = options.length - 1; i >= 0; i--) {
+                    const opt = options[i];
+                    const [y, t] = opt.split("_");
+                    const semPrefix = `./public/${y}_${t}`;
+                    const candidates = [`${semPrefix}/courses.non-empty.json`, `${semPrefix}/courses.json`];
+                    let found = false;
+                    for (const url of candidates) {
+                        try {
+                            const resp = await fetch(url, { method: 'GET', cache: 'no-store' });
+                            if (resp && resp.ok) {
+                                state.semester = opt;
+                                localStorage.setItem('ntnu-course-semester', state.semester);
+                                found = true;
+                                break;
+                            }
+                        } catch (e) {
+                            // ignore and try next
+                        }
+                    }
+                    if (found) break;
+                }
+                // fallback to last option if detection didn't find existing files
+                if (!state.semester) {
+                    const lastOpt = elements.semesterSelect.options[elements.semesterSelect.options.length - 1].value;
+                    state.semester = lastOpt;
+                    localStorage.setItem('ntnu-course-semester', state.semester);
+                }
+            }
+        // load selection for the resolved semester
+        state.selectedIds = new Set(loadSelection(state.semester));
+        if (elements.semesterSelect) elements.semesterSelect.value = state.semester;
+    } catch (e) {
+        // fallback: keep existing state.semester
+    }
+
     syncView();
     await loadCourses();
     renderAll();
@@ -107,11 +153,55 @@ function wireEvents() {
         renderAll();
     });
 
-    elements.deptSelect.addEventListener("change", () => {
-        state.dept = elements.deptSelect.value;
-        state.visibleCount = 48;
-        renderAll();
-    });
+    if (elements.deptSelectToggle && elements.deptSelectMenu) {
+        elements.deptSelectToggle.addEventListener("click", () => {
+            const isNowShown = elements.deptSelectMenu.style.display === "none" ? "block" : "none";
+            elements.deptSelectMenu.style.display = isNowShown;
+            // focus the search box when menu opens
+            if (isNowShown === 'block') {
+                const input = elements.deptSelectMenu.querySelector('#deptFilterInput');
+                if (input) input.focus();
+            }
+        });
+
+        elements.deptSelectMenu.addEventListener("change", (event) => {
+            const target = event.target;
+            if (!target || !target.classList.contains("dept-checkbox")) return;
+
+            const selected = Array.from(elements.deptSelectMenu.querySelectorAll(".dept-checkbox:checked")).map((option) => option.value).filter(Boolean);
+            const specific = selected.filter((value) => value !== "ALL");
+
+            if (specific.length === 0) {
+                state.dept = new Set();
+                elements.deptSelectMenu.querySelectorAll(".dept-checkbox").forEach((checkbox) => {
+                    checkbox.checked = checkbox.value === "ALL";
+                });
+            } else {
+                state.dept = new Set(specific);
+                const allCheckbox = elements.deptSelectMenu.querySelector(".dept-checkbox[value='ALL']");
+                if (allCheckbox) allCheckbox.checked = false;
+            }
+
+            updateDeptSelectLabel();
+            state.visibleCount = 48;
+            renderAll();
+        });
+        // support search/filter within dept menu (delegated after populateFilters)
+        elements.deptSelectMenu.addEventListener('input', (e) => {
+            const target = e.target;
+            if (!target) return;
+            if (target.id !== 'deptFilterInput') return;
+            const q = String(target.value || '').trim().toLowerCase();
+            const labels = Array.from(elements.deptSelectMenu.querySelectorAll('label'));
+            for (const lbl of labels) {
+                // keep the ALL option visible
+                const checkbox = lbl.querySelector('.dept-checkbox');
+                if (checkbox && checkbox.value === 'ALL') { lbl.style.display = ''; continue; }
+                const text = (lbl.textContent || '').toLowerCase();
+                lbl.style.display = q === '' || text.includes(q) ? '' : 'none';
+            }
+        });
+    }
 
 
     elements.sortSelect.addEventListener("change", () => {
@@ -126,12 +216,17 @@ function wireEvents() {
 
     elements.resetBtn.addEventListener("click", () => {
         state.query = "";
-        state.dept = "ALL";
+        state.dept = new Set();
         state.kind = "ALL";
         state.sort = "name";
         state.visibleCount = 48;
         elements.searchInput.value = "";
-        elements.deptSelect.value = "ALL";
+        if (elements.deptSelectMenu) {
+            elements.deptSelectMenu.querySelectorAll(".dept-checkbox").forEach((checkbox) => {
+                checkbox.checked = checkbox.value === "ALL";
+            });
+        }
+        updateDeptSelectLabel();
         elements.sortSelect.value = "name";
         renderAll();
     });
@@ -419,11 +514,28 @@ function populateFilters() {
     const kinds = [...new Set(state.courses.map((course) => course.course_kind || "未分類"))]
         .sort((left, right) => left.localeCompare(right, "zh-Hant"));
 
-    elements.deptSelect.innerHTML = [
-        `<option value="ALL">全部系所/分類</option>`,
-        ...depts.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
-    ].join("");
+    if (elements.deptSelectMenu) {
+        elements.deptSelectMenu.innerHTML = [
+            `<div style="padding:6px 4px;"><input id="deptFilterInput" type="search" placeholder="搜尋系所或分類" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(0,0,0,0.06);"></div>`,
+            `<label style="display:block; width:100%; padding:6px 4px; cursor:pointer;"><input class="dept-checkbox" type="checkbox" value="ALL" ${state.dept.size === 0 ? "checked" : ""}> 全部系所/分類</label>`,
+            ...depts.map((value) => `<label style="display:block; width:100%; padding:6px 4px; cursor:pointer;"><input class="dept-checkbox" type="checkbox" value="${escapeHtml(value)}" ${state.dept.has(value) ? "checked" : ""}> ${escapeHtml(value)}</label>`)
+        ].join("");
+    }
 
+    updateDeptSelectLabel();
+
+}
+
+function updateDeptSelectLabel() {
+    if (!elements.deptSelectLabel) return;
+
+    if (!state.dept || state.dept.size === 0) {
+        elements.deptSelectLabel.textContent = "全部系所/分類";
+        return;
+    }
+
+    const values = Array.from(state.dept);
+    elements.deptSelectLabel.textContent = values.length <= 2 ? values.join("、") : `${values.slice(0, 2).join("、")} 等 ${values.length} 項`;
 }
 
 function renderAll() {
@@ -485,7 +597,7 @@ function renderSummary() {
 
     const chips = [];
     if (state.query) chips.push(`搜尋：${escapeHtml(state.query)}`);
-    if (state.dept !== "ALL") chips.push(`分類：${escapeHtml(state.dept)}`);
+    if (state.dept.size > 0) chips.push(`分類：${escapeHtml(Array.from(state.dept).join("、"))}`);
     if (state.kind !== "ALL") chips.push(`類型：${escapeHtml(state.kind)}`);
     if (state.sort !== "name") {
         chips.push(`排序：${escapeHtml(elements.sortSelect.options[elements.sortSelect.selectedIndex].text)}`);
@@ -696,8 +808,11 @@ function renderPlanner() {
 function getFilteredCourses() {
     return state.courses
         .filter((course) => {
-            if (state.dept !== "ALL" && (course.dept_chiabbr || course.dept_code || "未分類") !== state.dept) {
-                return false;
+            if (state.dept.size > 0) {
+                const deptValue = course.dept_chiabbr || course.dept_code || "未分類";
+                if (!state.dept.has(deptValue)) {
+                    return false;
+                }
             }
 
             if (state.kind !== "ALL" && (course.course_kind || "未分類") !== state.kind) {
