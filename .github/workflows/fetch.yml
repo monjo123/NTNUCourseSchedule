@@ -25,4 +25,8 @@ jobs:
           git config user.email "github-actions@github.com"
           git add public/
           git commit -m "update courses" || exit 0
+      - nvim: push
+        env: 
+          GITHUB_TOCKEN: ${{ secrets.GITHUB_TOCKEN }}
+        run:
           git push
