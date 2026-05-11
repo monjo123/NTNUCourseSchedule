@@ -329,6 +329,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+      align-items: flex-start;
     }
 
     .chip {
@@ -340,7 +341,12 @@
       background: rgba(19, 78, 74, 0.08);
       color: var(--accent);
       font-size: 0.82rem;
-      white-space: nowrap;
+      line-height: 1.35;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      max-width: 100%;
+      overflow: hidden;
     }
 
     .chip.warn {
