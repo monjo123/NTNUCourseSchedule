@@ -3,14 +3,14 @@ const COURSE_SOURCES = ["./public/courses.non-empty.json", "./public/courses.jso
 const DEFAULT_SEMESTER = localStorage.getItem('ntnu-course-semester');
 const DAYS = ["一", "二", "三", "四", "五", "六", "日"];
 const DAY_LABELS = {
-    一: "星期一",
-    二: "星期二",
-    三: "星期三",
-    四: "星期四",
-    五: "星期五",
-    六: "星期六",
-    日: "星期日",
-    天: "星期日"
+    一: "週一",
+    二: "週二",
+    三: "週三",
+    四: "週四",
+    五: "週五",
+    六: "週六",
+    日: "週日",
+    天: "週日"
 };
 const SECTION_ORDER = {
     A: 11,
@@ -315,29 +315,27 @@ function wireEvents() {
             const FULL_SECTIONS = ['0', ...Array.from({ length: 10 }, (_, i) => String(i + 1)), 'A', 'B', 'C', 'D'];
             // Build header row with day checkboxes
             let html = '';
-            html += `<div style="display:flex; align-items:center; justify-content:center; font-weight:600;">節次\\星期</div>`;
+            // left spacer for section column
+            html += `<div></div>`;
             for (const day of DAYS) {
-                html += `<div style="text-align:center;"><label style="display:flex;flex-direction:column;align-items:center;gap:4px;"><input class=\"day-checkbox\" type=\"checkbox\" data-day=\"${day}\" id=\"day-${day}\"><span style=\"font-weight:600;\">${DAY_LABELS[day] || day}</span></label></div>`;
+                html += `<div style="text-align:center;"><label style="display:flex;flex-direction:column;align-items:center;gap:4px;"><input class=\"day-checkbox\" type=\"checkbox\" data-day=\"${day}\" id=\"day-${day}\"><span style=\"font-weight:600;font-size:1.4em;\">${DAY_LABELS[day] || day}</span></label></div>`;
             }
 
             // Build rows for each section
             for (const section of FULL_SECTIONS) {
-                html += `<div style="display:flex; align-items:center; justify-content:center; font-weight:600;">${escapeHtml(section)}</div>`;
+                html += `<div style="display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.9em;">${escapeHtml(section)}</div>`;
                 for (const day of DAYS) {
                     html += `<div style="text-align:center;"><input class=\"slot-checkbox\" type=\"checkbox\" data-day=\"${day}\" data-section=\"${section}\" id=\"slot-${day}-${section}\"></div>`;
                 }
             }
 
             picker.innerHTML = html;
-            // Ensure container is not height-limited (always fully visible)
+            // Setup collapse/expand functionality
             try {
-                if (pickerContainer) {
-                    pickerContainer.style.maxHeight = 'none';
-                    pickerContainer.style.overflow = 'visible';
-                    pickerContainer.style.overflowY = 'visible';
-                }
                 const toggleBtn = document.getElementById('toggleSlotPicker');
-                if (toggleBtn) toggleBtn.style.display = 'none';
+                if (toggleBtn) {
+                    toggleBtn.style.display = ''; // show the button
+                }
             } catch (e) {}
 
             // Delegate change handling for both slot and day checkboxes
@@ -410,24 +408,14 @@ function wireEvents() {
             });
 
             // Toggle collapse/expand slot picker
-            // 1. 取得按鈕與文字標籤元素[cite: 1, 2]
             const toggleBtn = document.getElementById('toggleSlotPicker');
             const pickerContainer = document.getElementById('slotPickerContainer');
-            // 透過選擇器找到「時段勾選」這一行的 label
             const labelText = document.querySelector('label[style*="cursor:pointer"]');
 
             if (toggleBtn && pickerContainer) {
                 let isCollapsed = false;
-
-                function computeAndSetExpandedHeight() {
-                    const rect = pickerContainer.getBoundingClientRect();
-                    const bottomGap = 20; // leave small gap from bottom
-                    const minHeight = 160;
-                    const available = Math.max(minHeight, window.innerHeight - rect.top - bottomGap);
-                    pickerContainer.style.maxHeight = `${available}px`;
-                    pickerContainer.style.overflowY = 'auto';
-                    pickerContainer.style.webkitOverflowScrolling = 'touch';
-                }
+                // Start expanded
+                toggleBtn.textContent = '▼';
 
                 const toggleAction = () => {
                     isCollapsed = !isCollapsed;
@@ -436,7 +424,9 @@ function wireEvents() {
                         pickerContainer.style.overflow = 'hidden';
                         toggleBtn.textContent = '▶';
                     } else {
-                        computeAndSetExpandedHeight();
+                        // Expanded: show everything without scrolling
+                        pickerContainer.style.maxHeight = 'none';
+                        pickerContainer.style.overflow = 'visible';
                         toggleBtn.textContent = '▼';
                     }
                 };
@@ -445,13 +435,9 @@ function wireEvents() {
 
                 if (labelText) {
                     labelText.style.userSelect = 'none';
-                    labelText.addEventListener('dblclick', toggleAction);
+                    labelText.style.cursor = 'pointer';
+                    labelText.addEventListener('click', toggleAction);
                 }
-
-                // Recompute on resize when expanded
-                window.addEventListener('resize', () => {
-                    if (!isCollapsed) computeAndSetExpandedHeight();
-                });
             }
         }
     } catch (e) {
