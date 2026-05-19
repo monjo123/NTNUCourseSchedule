@@ -168,6 +168,18 @@ function wireEvents() {
             const target = event.target;
             if (!target || !target.classList.contains("dept-checkbox")) return;
 
+            // If the user explicitly checked the "ALL" option, clear other selections
+            if (target.value === "ALL" && target.checked) {
+                state.dept = new Set();
+                elements.deptSelectMenu.querySelectorAll(".dept-checkbox").forEach((checkbox) => {
+                    checkbox.checked = checkbox.value === "ALL";
+                });
+                updateDeptSelectLabel();
+                state.visibleCount = 48;
+                renderAll();
+                return;
+            }
+
             const selected = Array.from(elements.deptSelectMenu.querySelectorAll(".dept-checkbox:checked")).map((option) => option.value).filter(Boolean);
             const specific = selected.filter((value) => value !== "ALL");
 
@@ -404,6 +416,46 @@ function wireEvents() {
                     dayCb.checked = checkedCount === total;
                     dayCb.indeterminate = checkedCount > 0 && checkedCount < total;
                 });
+                renderResults();
+            });
+
+            // 空堂查詢：根據「我的規劃」中已加入的課程，將未被佔用的節次全部勾選
+            const freeSlotBtn = document.getElementById('freeSlotSearch');
+            if (freeSlotBtn) freeSlotBtn.addEventListener('click', () => {
+                // Build set of occupied slot keys from selected courses
+                const occupied = new Set();
+                const selectedCourses = getSelectedCourses();
+                for (const course of selectedCourses) {
+                    const slots = parseSlots(getScheduleTime(course));
+                    if (!slots || slots.length === 0) continue;
+                    for (const slot of slots) {
+                        const sectionKey = sectionFromOrder(slot.order ?? sectionToOrder(slot.section));
+                        const key = `${slot.day}-${sectionKey}`;
+                        occupied.add(key);
+                    }
+                }
+
+                // Toggle slot checkboxes: check those not occupied, uncheck occupied
+                picker.querySelectorAll('.slot-checkbox').forEach(cb => {
+                    const key = `${cb.dataset.day}-${cb.dataset.section}`;
+                    if (!occupied.has(key)) {
+                        cb.checked = true;
+                        state.selectedSlots.add(key);
+                    } else {
+                        cb.checked = false;
+                        state.selectedSlots.delete(key);
+                    }
+                });
+
+                // Update day header checkboxes
+                picker.querySelectorAll('.day-checkbox').forEach(dayCb => {
+                    const day = dayCb.dataset.day;
+                    const total = picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]`).length;
+                    const checkedCount = picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]:checked`).length;
+                    dayCb.checked = checkedCount === total;
+                    dayCb.indeterminate = checkedCount > 0 && checkedCount < total;
+                });
+
                 renderResults();
             });
 
@@ -808,21 +860,64 @@ function getFilteredCourses() {
             // If slot selection is active, ensure course times are fully within selected slots
             if (state.selectedSlots && state.selectedSlots.size > 0) {
                 const slots = parseSlots(getScheduleTime(course));
-                if (!slots || slots.length === 0) return false;
-                for (const slot of slots) {
-                    const sectionKey = sectionFromOrder(slot.order ?? sectionToOrder(slot.section));
-                    const key = `${slot.day}-${sectionKey}`;
-                    if (!state.selectedSlots.has(key)) {
-                        return false;
+                // Include courses that do not provide time information
+                if (!slots || slots.length === 0) {
+                    // do not filter out courses without time; include them
+                } else {
+                    for (const slot of slots) {
+                        const sectionKey = sectionFromOrder(slot.order ?? sectionToOrder(slot.section));
+                        const key = `${slot.day}-${sectionKey}`;
+                        if (!state.selectedSlots.has(key)) {
+                            return false;
+                        }
                     }
                 }
             }
 
-            if (!state.query) {
-                return true;
+            // Advanced search: support quoted phrases ("must include"), space-separated terms (match any),
+            // and '-' prefix to exclude terms. Example:
+            //   hello world    => matches if either 'hello' OR 'world' present
+            //   "data structures"  => must include exact phrase data structures
+            //   -retired         => exclude courses containing 'retired'
+            const q = String(state.query || '').trim();
+            if (!q) return true;
+
+            // extract quoted phrases
+            const required = [];
+            let remaining = q.replace(/"([^"]+)"/g, (m, p1) => {
+                required.push(p1.trim().toLowerCase());
+                return ' ';
+            });
+
+            // split remaining tokens
+            const tokens = remaining.split(/\s+/).map(t => t.trim()).filter(Boolean).map(t => t.toLowerCase());
+            const includeAny = tokens.filter(t => !t.startsWith('-'));
+            const exclude = tokens.filter(t => t.startsWith('-')).map(t => t.substring(1));
+
+            const text = String(course.searchText || '').toLowerCase();
+
+            // exclude terms check
+            for (const ex of exclude) {
+                if (!ex) continue;
+                if (text.includes(ex)) return false;
             }
 
-            return course.searchText.includes(state.query);
+            // required (quoted) phrases must all be present
+            for (const req of required) {
+                if (!req) continue;
+                if (!text.includes(req)) return false;
+            }
+
+            // if there are includeAny tokens, at least one must match
+            if (includeAny.length > 0) {
+                let anyMatch = false;
+                for (const t of includeAny) {
+                    if (text.includes(t)) { anyMatch = true; break; }
+                }
+                if (!anyMatch) return false;
+            }
+
+            return true;
         })
         .sort(compareCourses(state.sort));
 }
