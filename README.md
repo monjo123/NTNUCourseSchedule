@@ -12,7 +12,7 @@ https://monjo123.github.io/NTNUCourseSchedule/
 - 規劃清單：加入課程後會自動計算學分與衝突。
 - 週課表檢視：以星期與節次顯示已選課程。
 - 時段勾選：可勾選多個時段，只顯示完全落在勾選範圍內的課程。
-- 學期支援：內建 113-1、113-2、114-1、114-2，切換學期會分開保存規劃。
+- 學期支援：會自動讀取 `public/` 底下的學期資料夾，切換學期會分開保存規劃。
 - CSV 匯出/匯入：匯出時會包含學期資訊；匯入時會檢查課程是否存在、時間是否完整，並可自動切換到檔案內學期。
 
 ### 使用方式
@@ -33,12 +33,15 @@ https://monjo123.github.io/NTNUCourseSchedule/
 
 ### 資料來源
 
-課程資料會優先讀取學期資料夾中的檔案：
+課程資料會優先讀取學期資料夾中的檔案，學期選單則由 `public/semesters.json` 自動生成：
 
 - `public/113_1/courses.json`
 - `public/113_2/courses.json`
 - `public/114_1/courses.json`
 - `public/114_2/courses.json`
+- `public/115_1/courses.json`
+- `public/115_2/courses.json`
+- `public/semesters.json`
 
 如果對應檔案不存在，程式會退回使用舊格式資料來源。
 
@@ -51,7 +54,7 @@ npm install
 npm run fetch
 ```
 
-執行後會更新各學期資料夾中的 `courses.json`。
+執行後會更新各學期資料夾中的 `courses.json`，並同步產生 `public/semesters.json`。
 
 ### 本機預覽
 

@@ -1,4 +1,5 @@
 const STORAGE_KEY = "ntnu-course-plan-v1";
+const SEMESTER_INDEX_URL = "./public/semesters.json";
 const COURSE_SOURCES = ["./public/courses.non-empty.json", "./public/courses.json"];
 const DEFAULT_SEMESTER = localStorage.getItem('ntnu-course-semester');
 const DAYS = ["一", "二", "三", "四", "五", "六", "日"];
@@ -27,6 +28,54 @@ const SECTION_ORDER = {
 const SECTION_ORDER_REVERSE = Object.fromEntries(
     Object.entries(SECTION_ORDER).map(([label, order]) => [order, label])
 );
+
+function compareSemesters(left, right) {
+    const [leftYear, leftTerm] = String(left || "").split("_").map((value) => Number(value) || 0);
+    const [rightYear, rightTerm] = String(right || "").split("_").map((value) => Number(value) || 0);
+
+    return leftYear - rightYear || leftTerm - rightTerm;
+}
+
+function formatSemesterLabel(semester) {
+    return String(semester || "").replace("_", "-");
+}
+
+async function loadSemesterOptions() {
+    const fallbackOptions = elements.semesterSelect
+        ? Array.from(elements.semesterSelect.options).map((option) => option.value).filter(Boolean)
+        : [];
+
+    let semesters = [];
+
+    try {
+        const response = await fetch(SEMESTER_INDEX_URL, { cache: "no-store" });
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                semesters = data.filter((semester) => /^\d+_[12]$/.test(String(semester)));
+            }
+            } else {
+                console.warn(`無法取得 ${SEMESTER_INDEX_URL} (HTTP ${response.status})`);
+            }
+        } catch (error) {
+            console.warn("未能讀取學期索引，或為本地檔案直接開啟 (無法 fetch)，改用預設學期。", error);
+            semesters = [];
+        }
+
+        if (semesters.length === 0) {
+            semesters = fallbackOptions.length > 0 ? fallbackOptions : ["113_1", "113_2", "114_1", "114_2", "115_1", "115_2"];
+        }
+
+        semesters = [...new Set(semesters)].sort(compareSemesters);
+
+        if (elements.semesterSelect) {
+            elements.semesterSelect.innerHTML = semesters
+                .map((semester) => `<option value="${escapeHtml(semester)}">${escapeHtml(formatSemesterLabel(semester))}</option>`)
+                .join("");
+        }
+
+        return semesters;
+}
 
 const state = {
     courses: [],
@@ -94,43 +143,23 @@ init().catch((error) => {
 async function init() {
     wireEvents();
     renderStaticControls();
-    // Determine default semester: prefer saved value, otherwise pick the latest option in the select
+
+    const semesters = await loadSemesterOptions();
+
     try {
         const saved = localStorage.getItem('ntnu-course-semester');
-        if (saved) {
+        if (saved && semesters.includes(saved)) {
             state.semester = saved;
-        } else if (elements.semesterSelect && elements.semesterSelect.options.length) {
-                // Try to detect the latest semester by checking available public/{year}_{term} files
-                const options = Array.from(elements.semesterSelect.options).map(o => o.value);
-                // iterate from newest (end) to oldest
-                for (let i = options.length - 1; i >= 0; i--) {
-                    const opt = options[i];
-                    const [y, t] = opt.split("_");
-                    const semPrefix = `./public/${y}_${t}`;
-                    const candidates = [`${semPrefix}/courses.non-empty.json`, `${semPrefix}/courses.json`];
-                    let found = false;
-                    for (const url of candidates) {
-                        try {
-                            const resp = await fetch(url, { method: 'GET', cache: 'no-store' });
-                            if (resp && resp.ok) {
-                                state.semester = opt;
-                                localStorage.setItem('ntnu-course-semester', state.semester);
-                                found = true;
-                                break;
-                            }
-                        } catch (e) {
-                            // ignore and try next
-                        }
-                    }
-                    if (found) break;
-                }
-                // fallback to last option if detection didn't find existing files
-                if (!state.semester) {
-                    const lastOpt = elements.semesterSelect.options[elements.semesterSelect.options.length - 1].value;
-                    state.semester = lastOpt;
-                    localStorage.setItem('ntnu-course-semester', state.semester);
-                }
-            }
+        } else if (semesters.length) {
+            state.semester = semesters[semesters.length - 1];
+        } else if (saved) {
+            state.semester = saved;
+        }
+
+        if (state.semester) {
+            localStorage.setItem('ntnu-course-semester', state.semester);
+        }
+
         // load selection for the resolved semester
         state.selectedIds = new Set(loadSelection(state.semester));
         if (elements.semesterSelect) elements.semesterSelect.value = state.semester;
@@ -519,7 +548,12 @@ async function loadCourses() {
     let lastError = null;
 
     // Build semester-specific sources first
-    const [year, term] = (state.semester || DEFAULT_SEMESTER).split("_");
+    const semester = state.semester || DEFAULT_SEMESTER;
+    if (!semester) {
+        throw new Error("尚未找到任何學期資料");
+    }
+
+    const [year, term] = semester.split("_");
     const semPrefix = `./public/${year}_${term}`;
     const sources = [
         `${semPrefix}/courses.non-empty.json`,

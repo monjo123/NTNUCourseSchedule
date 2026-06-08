@@ -121,6 +121,25 @@ async function safeGet(client, url, params) {
   }
 }
 
+function writeSemesterIndex() {
+  const publicDir = "public";
+  const semesters = fs.readdirSync(publicDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^\d+_\d+$/.test(entry.name))
+    .filter((entry) => {
+      const dir = `${publicDir}/${entry.name}`;
+      return fs.existsSync(`${dir}/courses.json`) || fs.existsSync(`${dir}/courses.non-empty.json`);
+    })
+    .map((entry) => entry.name)
+    .sort((left, right) => {
+      const [leftYear, leftTerm] = left.split("_").map((value) => Number(value) || 0);
+      const [rightYear, rightTerm] = right.split("_").map((value) => Number(value) || 0);
+      return leftYear - rightYear || leftTerm - rightTerm;
+    });
+
+  fs.writeFileSync(`${publicDir}/semesters.json`, `${JSON.stringify(semesters, null, 2)}\n`);
+  console.log(`🗂️  saved: ${publicDir}/semesters.json (${semesters.length} semesters)`);
+}
+
 // =====================
 // main
 // =====================
@@ -217,4 +236,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.error(`❌ failed to fetch ${sem.year}-${sem.term}:`, err && err.message ? err.message : err);
     }
   }
+
+  writeSemesterIndex();
 }
