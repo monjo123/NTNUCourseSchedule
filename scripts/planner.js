@@ -391,22 +391,22 @@ function wireEvents() {
         const pickerContainer = document.getElementById('slotPickerContainer');
         if (picker) {
             const FULL_SECTIONS = ['0', ...Array.from({ length: 10 }, (_, i) => String(i + 1)), 'A', 'B', 'C', 'D'];
-            // Build header row with day checkboxes
             let html = '';
-            // left spacer for section column
-            html += `<div></div>`;
+
+            // 表頭行
+            html += `<div class="slot-cell"></div>`; 
             for (const day of DAYS) {
-                html += `<div style="text-align:center;"><label style="display:flex;flex-direction:column;align-items:center;gap:4px;"><input class=\"day-checkbox\" type=\"checkbox\" data-day=\"${day}\" id=\"day-${day}\"><span style=\"font-weight:600;font-size:1.4em;\">${DAY_LABELS[day] || day}</span></label></div>`;
+                html += `<div class="slot-cell"><strong>${DAY_LABELS[day]}</strong></div>`;
             }
 
-            // Build rows for each section
+            // 內容區
             for (const section of FULL_SECTIONS) {
-                html += `<div style="display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.9em;">${escapeHtml(section)}</div>`;
+                html += `<div class="slot-cell time-label">${escapeHtml(section)}</div>`;
                 for (const day of DAYS) {
-                    html += `<div style="text-align:center;"><input class=\"slot-checkbox\" type=\"checkbox\" data-day=\"${day}\" data-section=\"${section}\" id=\"slot-${day}-${section}\"></div>`;
+                    // 賦予 data 屬性，這是 When2meet 風格的核心
+                    html += `<div class="slot-cell" data-day="${day}" data-section="${section}"></div>`;
                 }
             }
-
             picker.innerHTML = html;
             // Setup collapse/expand functionality
             try {
@@ -416,79 +416,82 @@ function wireEvents() {
                 }
             } catch (e) {}
 
-            // Delegate change handling for both slot and day checkboxes
-            picker.addEventListener('change', (e) => {
-                const target = e.target;
-                if (!target) return;
+            let isPainting = false;
+            let paintSelect = true;
 
-                // Day checkbox toggles entire column
-                if (target.classList && target.classList.contains('day-checkbox')) {
-                    const day = target.dataset.day;
-                    const checked = !!target.checked;
-                    picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]`).forEach(cb => {
-                        cb.checked = checked;
-                        const key = `${day}-${cb.dataset.section}`;
-                        if (checked) state.selectedSlots.add(key);
-                        else state.selectedSlots.delete(key);
-                    });
-                    renderResults();
-                    return;
-                }
+            function slotKey(cell) {
+                return `${cell.dataset.day}-${cell.dataset.section}`;
+            }
 
-                // Individual slot checkbox
-                if (target.classList && target.classList.contains('slot-checkbox')) {
-                    const day = target.dataset.day;
-                    const section = target.dataset.section;
-                    const key = `${day}-${section}`;
-                    if (target.checked) state.selectedSlots.add(key);
-                    else state.selectedSlots.delete(key);
+            function syncSlotPickerUI() {
+                picker.querySelectorAll('.slot-cell[data-day]').forEach((cell) => {
+                    cell.classList.toggle('is-selected', state.selectedSlots.has(slotKey(cell)));
+                });
+            }
 
-                    // Update day header state (checked / indeterminate)
-                    const dayCb = picker.querySelector(`.day-checkbox[data-day="${day}"]`);
-                    if (dayCb) {
-                        const total = picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]`).length;
-                        const checkedCount = picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]:checked`).length;
-                        dayCb.checked = checkedCount === total;
-                        dayCb.indeterminate = checkedCount > 0 && checkedCount < total;
+            function applySlot(cell, select) {
+                const key = slotKey(cell);
+                if (select) {
+                    if (!state.selectedSlots.has(key)) {
+                        state.selectedSlots.add(key);
+                        cell.classList.add('is-selected');
                     }
-
-                    renderResults();
+                } else if (state.selectedSlots.has(key)) {
+                    state.selectedSlots.delete(key);
+                    cell.classList.remove('is-selected');
                 }
+            }
+
+            function finishPainting() {
+                if (!isPainting) return;
+                isPainting = false;
+                picker.classList.remove('is-dragging');
+                renderResults();
+            }
+
+            picker.addEventListener('dragstart', (e) => e.preventDefault());
+
+            // When2meet 風格：mousedown 決定「塗選」或「擦除」，拖曳時維持同一模式
+            picker.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                const target = e.target.closest('.slot-cell[data-day]');
+                if (!target) return;
+                e.preventDefault();
+                isPainting = true;
+                paintSelect = !state.selectedSlots.has(slotKey(target));
+                picker.classList.add('is-dragging');
+                applySlot(target, paintSelect);
             });
+
+            picker.addEventListener('mouseover', (e) => {
+                if (!isPainting) return;
+                const target = e.target.closest('.slot-cell[data-day]');
+                if (target) applySlot(target, paintSelect);
+            });
+
+            window.addEventListener('mouseup', finishPainting);
 
             const clearBtn = document.getElementById('clearSlotSelection');
             if (clearBtn) clearBtn.addEventListener('click', () => {
                 state.selectedSlots.clear();
-                picker.querySelectorAll('.slot-checkbox, .day-checkbox').forEach(cb => { cb.checked = false; cb.indeterminate = false; });
+                syncSlotPickerUI();
                 renderResults();
             });
 
             const invertBtn = document.getElementById('invertSlotSelection');
             if (invertBtn) invertBtn.addEventListener('click', () => {
-                // Invert per-slot selection
-                picker.querySelectorAll('.slot-checkbox').forEach(cb => {
-                    const day = cb.dataset.day;
-                    const section = cb.dataset.section;
-                    const key = `${day}-${section}`;
-                    cb.checked = !cb.checked;
-                    if (cb.checked) state.selectedSlots.add(key);
-                    else state.selectedSlots.delete(key);
+                picker.querySelectorAll('.slot-cell[data-day]').forEach((cell) => {
+                    const key = slotKey(cell);
+                    if (state.selectedSlots.has(key)) state.selectedSlots.delete(key);
+                    else state.selectedSlots.add(key);
                 });
-                // Update day headers
-                picker.querySelectorAll('.day-checkbox').forEach(dayCb => {
-                    const day = dayCb.dataset.day;
-                    const total = picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]`).length;
-                    const checkedCount = picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]:checked`).length;
-                    dayCb.checked = checkedCount === total;
-                    dayCb.indeterminate = checkedCount > 0 && checkedCount < total;
-                });
+                syncSlotPickerUI();
                 renderResults();
             });
 
             // 空堂查詢：根據「我的規劃」中已加入的課程，將未被佔用的節次全部勾選
             const freeSlotBtn = document.getElementById('freeSlotSearch');
             if (freeSlotBtn) freeSlotBtn.addEventListener('click', () => {
-                // Build set of occupied slot keys from selected courses
                 const occupied = new Set();
                 const selectedCourses = getSelectedCourses();
                 for (const course of selectedCourses) {
@@ -496,32 +499,15 @@ function wireEvents() {
                     if (!slots || slots.length === 0) continue;
                     for (const slot of slots) {
                         const sectionKey = sectionFromOrder(slot.order ?? sectionToOrder(slot.section));
-                        const key = `${slot.day}-${sectionKey}`;
-                        occupied.add(key);
+                        occupied.add(`${slot.day}-${sectionKey}`);
                     }
                 }
 
-                // Toggle slot checkboxes: check those not occupied, uncheck occupied
-                picker.querySelectorAll('.slot-checkbox').forEach(cb => {
-                    const key = `${cb.dataset.day}-${cb.dataset.section}`;
-                    if (!occupied.has(key)) {
-                        cb.checked = true;
-                        state.selectedSlots.add(key);
-                    } else {
-                        cb.checked = false;
-                        state.selectedSlots.delete(key);
-                    }
+                state.selectedSlots.clear();
+                picker.querySelectorAll('.slot-cell[data-day]').forEach((cell) => {
+                    if (!occupied.has(slotKey(cell))) state.selectedSlots.add(slotKey(cell));
                 });
-
-                // Update day header checkboxes
-                picker.querySelectorAll('.day-checkbox').forEach(dayCb => {
-                    const day = dayCb.dataset.day;
-                    const total = picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]`).length;
-                    const checkedCount = picker.querySelectorAll(`.slot-checkbox[data-day="${day}"]:checked`).length;
-                    dayCb.checked = checkedCount === total;
-                    dayCb.indeterminate = checkedCount > 0 && checkedCount < total;
-                });
-
+                syncSlotPickerUI();
                 renderResults();
             });
 
@@ -632,7 +618,7 @@ function populateFilters() {
 
     if (elements.deptSelectMenu) {
         elements.deptSelectMenu.innerHTML = [
-            `<div style="padding:6px 4px;"><input id="deptFilterInput" type="search" placeholder="搜尋系所或分類" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(0,0,0,0.06);"></div>`,
+            `<div style="padding:6px 4px;"><input id="deptFilterInput" type="search" placeholder="搜尋系所或分類" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--line);"></div>`,
             `<label style="display:block; width:100%; padding:6px 4px; cursor:pointer;"><input class="dept-checkbox" type="checkbox" value="ALL" ${state.dept.size === 0 ? "checked" : ""}> 全部系所/分類</label>`,
             ...depts.map((value) => `<label style="display:block; width:100%; padding:6px 4px; cursor:pointer;"><input class="dept-checkbox" type="checkbox" value="${escapeHtml(value)}" ${state.dept.has(value) ? "checked" : ""}> ${escapeHtml(value)}</label>`)
         ].join("");
@@ -940,8 +926,8 @@ function renderPlanner() {
         <div class="schedule-item"
             data-serial-no="${escapeHtml(item.course.serial_no)}"
             style="
-                border-color: ${isConflict ? '#b42318' : item.color}33;
-                background: ${isConflict ? 'rgba(180,35,24,0.15)' : item.color + '14'};
+                border-color: ${isConflict ? '#b45309' : item.color}33;
+                background: ${isConflict ? 'rgba(180,83,9,0.15)' : item.color + '14'};
                 cursor: pointer;
             ">
             <strong>${escapeHtml(item.title)}</strong>

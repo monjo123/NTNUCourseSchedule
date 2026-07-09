@@ -11,22 +11,35 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f4efe7;
-      --bg-2: #ece6da;
-      --panel: rgba(255, 252, 246, 0.82);
-      --panel-strong: #fffaf0;
-      --text: #1d1a17;
-      --muted: #6f675f;
-      --line: rgba(33, 25, 16, 0.1);
-      --accent: #134e4a;
-      --accent-2: #d97706;
-      --danger: #b42318;
-      --success: #047857;
-      --shadow: 0 18px 60px rgba(64, 45, 22, 0.12);
+      --bg: #fbf9f6;
+      --bg-2: #f4f0ea;
+      --panel: rgba(255, 255, 255, 0.84);
+      --panel-strong: #ffffff;
+      --text: #263231;
+      --muted: #6b7a79;
+      --line: #e4e0d8;
+      --accent: #1e5652;
+      --accent-rgb: 30, 86, 82;
+      --accent-2: #1e5652;
+      --btn-primary-text: #ffffff;
+      --btn-secondary-bg: #eaf2f1;
+      --btn-secondary-text: #1e5652;
+      --tag-bg: #f3f5f4;
+      --tag-text: #3a635f;
+      --warn-bg: #fff4e6;
+      --warn-text: #b45309;
+      --warn-rgb: 180, 83, 9;
+      --danger: var(--warn-text);
+      --success: #3a635f;
+      --shadow: 0 18px 60px rgba(64, 45, 22, 0.09);
       --radius-xl: 28px;
       --radius-lg: 20px;
       --radius-md: 14px;
       --radius-sm: 10px;
+      --btn-soft-bg: #e4e9e8;
+      --btn-soft-text: #4a5553;
+      --btn-soft-danger-hover-bg: #fee2e2;
+      --btn-soft-danger-hover-text: #b91c1c;
     }
 
     * { box-sizing: border-box; }
@@ -37,8 +50,8 @@
       margin: 0;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(19, 78, 74, 0.12), transparent 30%),
-        radial-gradient(circle at 90% 10%, rgba(217, 119, 6, 0.15), transparent 24%),
+        radial-gradient(circle at top left, rgba(var(--accent-rgb), 0.08), transparent 30%),
+        radial-gradient(circle at 90% 10%, rgba(var(--warn-rgb), 0.10), transparent 24%),
         linear-gradient(180deg, var(--bg), var(--bg-2));
       font-family: "Space Grotesk", "Noto Sans TC", "PingFang TC", sans-serif;
     }
@@ -48,7 +61,7 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      background-image: linear-gradient(rgba(255, 255, 255, 0.24) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.10) 1px, transparent 1px);
       background-size: 38px 38px;
       mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.16), transparent 82%);
       opacity: 0.5;
@@ -68,7 +81,7 @@
       padding: 28px;
       border: 1px solid var(--line);
       border-radius: var(--radius-xl);
-      background: linear-gradient(180deg, rgba(255, 252, 246, 0.9), rgba(255, 250, 241, 0.72));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 244, 239, 0.72));
       box-shadow: var(--shadow);
       backdrop-filter: blur(14px);
     }
@@ -80,7 +93,7 @@
       gap: 8px;
       padding: 8px 14px;
       border-radius: 999px;
-      background: rgba(19, 78, 74, 0.08);
+      background: rgba(var(--accent-rgb), 0.08);
       color: var(--accent);
       font-size: 0.9rem;
       letter-spacing: 0.06em;
@@ -111,15 +124,15 @@
       max-width: 62rem;
       padding: 12px 14px;
       border-radius: var(--radius-md);
-      background: rgba(217, 119, 6, 0.12);
-      border: 1px solid rgba(217, 119, 6, 0.28);
-      color: #7a3400;
+      background: var(--warn-bg);
+      border: 1px solid rgba(var(--warn-rgb), 0.18);
+      color: var(--warn-text);
       font-size: 0.95rem;
       line-height: 1.6;
     }
 
     .update-notice strong {
-      color: #6a2b00;
+      color: var(--warn-text);
     }
 
     .hero-actions {
@@ -128,37 +141,86 @@
       gap: 10px;
     }
 
-    .view-tabs {
+    .btn-soft {
+      background: var(--btn-soft-bg);
+      color: var(--btn-soft-text);
+      border: none;
+      box-shadow: none;
+    }
+
+    .btn-soft:hover {
+      background: #d1e0de;
+      color: var(--accent);
+      box-shadow: none;
+    }
+
+    /* 修正「清空規劃」按鈕的預設樣式，統一背景並淡化文字 */
+    .btn.btn-soft.danger {
+        background: var(--btn-soft-bg); /* 強制套用與其他按鈕相同的淡綠色底 */
+        color: #7a8786; /* 將文字顏色改為較淡的灰色，降低視覺干擾 */
+    }
+
+    /* 滑鼠懸停 (Hover) 時的狀態：保留稍微的警告提示 */
+    .btn.btn-soft.danger:hover {
+        background: var(--btn-soft-danger-hover-bg); /* 淡淡的警告紅底 */
+        color: var(--btn-soft-danger-hover-text); /* 警告紅字 */
+    }
+
+    /* 方案一：現代底線型分頁 */
+    .layout-1 .views-tabs {
+      padding: 18px 22px 0;
+      background: transparent;
+      border-bottom: none;
+    }
+
+    .layout-1 .view-tabs {
       display: flex;
-      gap: 10px;
-      margin-top: 8px;
-      flex-wrap: wrap;
+      gap: 32px;
+      padding: 0;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
     }
 
-    .view-tab {
-      border: 1px solid rgba(33, 25, 16, 0.12);
-      background: rgba(255, 255, 255, 0.7);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 10px 16px;
+    .layout-1 .view-tab {
+      font: inherit;
+      font-size: 18px;
+      padding: 12px 4px;
+      color: var(--muted);
       cursor: pointer;
-      transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+      position: relative;
+      top: 1px;
+      border: none;
+      background: none;
+      border-radius: 0;
+      width: auto;
+      text-align: left;
+      transition: color 0.18s ease;
     }
 
-    .view-tab:hover {
-      transform: translateY(-1px);
+    .layout-1 .view-tab-title {
+      font-weight: inherit;
+      font-size: inherit;
+      line-height: 1.2;
     }
 
-    .view-tab[aria-selected="true"] {
-      background: linear-gradient(135deg, var(--accent), #0f766e);
-      color: #fff;
-      border-color: transparent;
-      box-shadow: 0 12px 26px rgba(19, 78, 74, 0.22);
+    .layout-1 .view-tab-desc {
+      display: none;
+    }
+
+    .layout-1 .view-tab:hover {
+      transform: none;
+      color: var(--accent);
+    }
+
+    .layout-1 .view-tab[aria-selected="true"] {
+      color: var(--accent);
+      font-weight: 600;
+      border-bottom: 3px solid var(--accent);
+      background: none;
+      box-shadow: none;
     }
 
     .views {
-      display: grid;
-      gap: 22px;
       margin-top: 22px;
     }
 
@@ -207,6 +269,10 @@
       min-width: 0;
     }
 
+    .catalog-filters {
+      margin-bottom: 14px;
+    }
+
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -217,9 +283,9 @@
     .summary-card {
       padding: 18px;
       border-radius: var(--radius-lg);
-      background: rgba(255, 255, 255, 0.52);
-      border: 1px solid rgba(33, 25, 16, 0.08);
-      box-shadow: 0 12px 36px rgba(74, 54, 29, 0.08);
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 36px rgba(64, 45, 22, 0.06);
     }
 
     .summary-card .label {
@@ -247,8 +313,8 @@
       gap: 12px;
       padding: 18px;
       border-radius: var(--radius-lg);
-      background: rgba(255, 255, 255, 0.6);
-      border: 1px solid rgba(33, 25, 16, 0.08);
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--line);
     }
 
     .toolbar-grid {
@@ -294,8 +360,8 @@
       width: 100%;
       padding: 13px 14px;
       border-radius: var(--radius-md);
-      border: 1px solid rgba(33, 25, 16, 0.12);
-      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
       color: var(--text);
       outline: none;
       transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
@@ -303,22 +369,8 @@
 
     input[type="search"]:focus,
     select:focus {
-      border-color: rgba(19, 78, 74, 0.5);
-      box-shadow: 0 0 0 4px rgba(19, 78, 74, 0.12);
-    }
-
-    .day-checkbox {
-      width: 1.35rem;
-      height: 1.35rem;
-      margin: 0;
-      accent-color: var(--accent);
-    }
-
-    .slot-checkbox {
-      width: 1.15rem;
-      height: 1.15rem;
-      margin: 0;
-      accent-color: var(--accent);
+      border-color: rgba(var(--accent-rgb), 0.45);
+      box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.10);
     }
 
     .muted {
@@ -338,8 +390,8 @@
       gap: 6px;
       padding: 7px 10px;
       border-radius: 999px;
-      background: rgba(19, 78, 74, 0.08);
-      color: var(--accent);
+      background: var(--tag-bg);
+      color: var(--tag-text);
       font-size: 0.82rem;
       line-height: 1.35;
       white-space: normal;
@@ -351,13 +403,13 @@
     }
 
     .chip.warn {
-      background: rgba(180, 35, 24, 0.1);
-      color: var(--danger);
+      background: var(--warn-bg);
+      color: var(--warn-text);
     }
 
     .chip.soft {
-      background: rgba(217, 119, 6, 0.1);
-      color: #8a4b00;
+      background: var(--tag-bg);
+      color: var(--tag-text);
     }
 
     .results-head {
@@ -377,7 +429,7 @@
     .results-head .page-size-inline select {
       padding: 6px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(33,25,16,0.08);
+      border: 1px solid var(--line);
       background: rgba(255,255,255,0.9);
       font-size: 0.9rem;
       color: var(--text);
@@ -419,8 +471,8 @@
       min-width: 2.5rem;
       padding: 10px 12px;
       border-radius: 999px;
-      border: 1px solid rgba(33, 25, 16, 0.12);
-      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.88);
       color: var(--text);
       cursor: pointer;
       transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
@@ -428,23 +480,23 @@
 
     .page-btn:hover:not(:disabled) {
       transform: translateY(-1px);
-      border-color: rgba(19, 78, 74, 0.35);
-      box-shadow: 0 10px 22px rgba(64, 45, 22, 0.08);
+      border-color: rgba(var(--accent-rgb), 0.3);
+      box-shadow: 0 10px 22px rgba(64, 45, 22, 0.06);
     }
 
     .page-btn.is-active {
-      background: linear-gradient(135deg, var(--accent), #0f766e);
-      color: #fff;
+      background: linear-gradient(135deg, var(--accent), #204f4c);
+      color: var(--btn-primary-text);
       border-color: transparent;
-      box-shadow: 0 12px 26px rgba(19, 78, 74, 0.22);
+      box-shadow: 0 12px 26px rgba(var(--accent-rgb), 0.18);
     }
 
     .course-card,
     .selected-card,
     .day-column,
     .empty-state {
-      border: 1px solid rgba(33, 25, 16, 0.09);
-      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.84);
       border-radius: var(--radius-lg);
     }
 
@@ -503,14 +555,14 @@
       gap: 6px;
       padding: 7px 10px;
       border-radius: 999px;
-      background: rgba(19, 78, 74, 0.06);
-      color: var(--text);
+      background: var(--tag-bg);
+      color: var(--tag-text);
       font-size: 0.8rem;
     }
 
     .meta.conflict {
-      background: rgba(180, 35, 24, 0.08);
-      color: var(--danger);
+      background: var(--warn-bg);
+      color: var(--warn-text);
     }
 
     .course-actions {
@@ -537,25 +589,25 @@
     .btn:hover { transform: translateY(-1px); }
 
     .btn.primary {
-      background: linear-gradient(135deg, var(--accent), #0f766e);
-      color: #fff;
-      box-shadow: 0 12px 26px rgba(19, 78, 74, 0.22);
+      background: var(--accent);
+      color: var(--btn-primary-text);
+      box-shadow: 0 12px 26px rgba(var(--accent-rgb), 0.18);
     }
 
     .btn.secondary {
-      background: rgba(19, 78, 74, 0.08);
-      color: var(--accent);
+      background: var(--btn-secondary-bg);
+      color: var(--btn-secondary-text);
     }
 
     .btn.ghost {
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.88);
       color: var(--text);
-      border: 1px solid rgba(33, 25, 16, 0.12);
+      border: 1px solid var(--line);
     }
 
     .btn.danger {
-      background: rgba(180, 35, 24, 0.1);
-      color: var(--danger);
+      background: var(--warn-bg);
+      color: var(--warn-text);
     }
 
     .btn:disabled {
@@ -605,7 +657,7 @@
       grid-template-columns: 60px repeat(7, 1fr);
       min-width: 920px;
       width: max(100%, 920px);
-      border: 1px solid rgba(33, 25, 16, 0.12);
+      border: 1px solid var(--line);
       border-radius: var(--radius-md);
       overflow: hidden;
       background: rgba(255, 255, 255, 0.78);
@@ -620,9 +672,9 @@
       padding: 12px 8px;
       font-size: 0.82rem;
       font-weight: 600;
-      background: rgba(19, 78, 74, 0.08);
-      border-right: 1px solid rgba(33, 25, 16, 0.12);
-      border-bottom: 1px solid rgba(33, 25, 16, 0.12);
+      background: rgba(var(--accent-rgb), 0.08);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -630,19 +682,19 @@
     }
 
     .schedule-header-row .schedule-cell-label {
-      background: linear-gradient(135deg, rgba(19, 78, 74, 0.12), rgba(19, 78, 74, 0.08));
-      border-bottom: 2px solid rgba(19, 78, 74, 0.16);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.08));
+      border-bottom: 2px solid rgba(var(--accent-rgb), 0.16);
     }
 
     .schedule-cell-header {
       padding: 12px 8px;
       font-size: 0.82rem;
       font-weight: 600;
-      background: linear-gradient(135deg, rgba(19, 78, 74, 0.12), rgba(19, 78, 74, 0.08));
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.08));
       color: var(--accent);
       text-align: center;
-      border-right: 1px solid rgba(33, 25, 16, 0.12);
-      border-bottom: 2px solid rgba(19, 78, 74, 0.16);
+      border-right: 1px solid var(--line);
+      border-bottom: 2px solid rgba(var(--accent-rgb), 0.16);
     }
 
     .schedule-cell-header:last-child {
@@ -652,8 +704,8 @@
     .schedule-cell {
       min-height: 80px;
       padding: 8px;
-      border-right: 1px solid rgba(33, 25, 16, 0.12);
-      border-bottom: 1px solid rgba(33, 25, 16, 0.12);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -668,8 +720,8 @@
     .schedule-item {
       padding: 8px 10px;
       border-radius: 8px;
-      background: linear-gradient(135deg, rgba(19, 78, 74, 0.12), rgba(19, 78, 74, 0.06));
-      border: 1px solid rgba(19, 78, 74, 0.12);
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.06));
+      border: 1px solid rgba(var(--accent-rgb), 0.12);
       display: grid;
       gap: 3px;
       font-size: 0.78rem;
@@ -721,7 +773,8 @@
 
       .hero,
       .panel-header,
-      .content { padding-left: 16px; padding-right: 16px; }
+      .content,
+      .views-tabs { padding-left: 16px; padding-right: 16px; }
 
       .toolbar-grid,
       .summary-grid {
@@ -730,6 +783,19 @@
 
       .update-notice {
         width: 100%;
+      }
+
+      .hero-actions .btn-soft {
+        width: 100%;
+      }
+
+      .layout-1 .view-tabs {
+        gap: 24px;
+      }
+
+      .layout-1 .view-tab {
+        font-size: 16px;
+        padding: 10px 2px;
       }
 
       .schedule-cell {
@@ -853,6 +919,129 @@
     #selectedList {
       display: none !important;
     }
+
+    #slotPickerContainer .btn {
+        padding: 8px 18px;
+        font-size: 0.9rem;
+        border-radius: 999px;
+        box-shadow: none;
+    }
+
+    #freeSlotSearch {
+        background-color: #0d9488;
+        color: #ffffff;
+        box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+    }
+    #freeSlotSearch:hover {
+        background-color: #0f766e;
+        box-shadow: 0 4px 6px rgba(13, 148, 136, 0.3);
+    }
+
+    #invertSlotSelection {
+        background-color: #ffffff;
+        border: 1px solid #d1d5db !important;
+        color: #4b5563;
+    }
+    #invertSlotSelection:hover {
+        background-color: #f3f4f6;
+    }
+
+    #clearSlotSelection {
+        background-color: #ffffff;
+        border: 1px solid #d1d5db !important;
+        color: #7a8786; /* 將文字顏色改為較淡的灰色，降低視覺干擾 */
+    }
+    #clearSlotSelection:hover {
+        background: var(--btn-soft-danger-hover-bg); /* 淡淡的警告紅底 */
+        color: var(--btn-soft-danger-hover-text); /* 警告紅字 */
+    }
+
+    #slotPicker {
+        display: grid !important;
+        grid-template-columns: 44px repeat(7, 1fr) !important;
+        gap: 1px !important;
+        background-color: var(--line);
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+    }
+
+    #slotPicker.is-dragging {
+        cursor: crosshair;
+    }
+
+    #slotPicker > .slot-cell {
+        background: #ffffff !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        padding: 0 !important;
+        min-height: 26px;
+        font-size: 0.82rem;
+        line-height: 1;
+    }
+
+    #slotPicker > .slot-cell:not([data-day]):not(.time-label) {
+        color: var(--muted);
+        font-weight: 600;
+        background: #f5f3ef !important;
+    }
+
+    #slotPicker .time-label {
+        cursor: default !important;
+        color: var(--muted);
+        font-weight: 600;
+        background: #f5f3ef !important;
+    }
+
+    #slotPicker .slot-cell[data-day] {
+        position: relative;
+        cursor: pointer;
+        background-color: #ffffff !important;
+        transition: background-color 0.1s ease;
+    }
+
+    #slotPicker .slot-cell[data-day]::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--accent);
+        opacity: 0;
+        transform: scale(0.85);
+        transition: opacity 0.12s ease, transform 0.12s ease;
+        pointer-events: none;
+    }
+
+    #slotPicker .slot-cell[data-day]:hover:not(.is-selected) {
+        background-color: rgba(var(--accent-rgb), 0.12) !important;
+    }
+
+    #slotPicker.is-dragging .slot-cell[data-day]:hover:not(.is-selected) {
+        background-color: rgba(var(--accent-rgb), 0.22) !important;
+    }
+
+    #slotPicker .slot-cell[data-day].is-selected {
+        background-color: transparent !important;
+    }
+
+    #slotPicker .slot-cell[data-day].is-selected::before {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    #slotPicker .slot-cell[data-day].is-selected:hover::before {
+        background: #174945;
+    }
+
+
+    .slot-actions {
+        display: flex !important;
+        justify-content: flex-end !important;
+        gap: 8px !important;
+        padding: 12px !important;
+        border-top: 1px solid var(--line);
+        background: #ffffff;
+    }
   </style>
 </head>
 <body>
@@ -912,26 +1101,23 @@
         <span>資料會在每週一 09:00 自動更新，更新期間系統可能出現約 10 分鐘卡頓。</span>
       </div>
       <div class="hero-actions">
-        <button class="btn primary" id="exportBtn" type="button">匯出規劃</button>
-        <button class="btn ghost" id="importBtn" type="button">匯入規劃</button>
-        <button class="btn ghost" id="clearBtn" type="button">清空規劃</button>
-      </div>
-      <div class="view-tabs" role="tablist" aria-label="主要分頁">
-        <button class="view-tab" id="catalogTab" type="button" role="tab" aria-selected="true" aria-controls="catalogView">課程目錄</button>
-        <button class="view-tab" id="plannerTab" type="button" role="tab" aria-selected="false" aria-controls="plannerView">我的規劃</button>
+        <button class="btn btn-soft" data-role="export" id="exportBtn" type="button">匯出規劃</button>
+        <button class="btn btn-soft" data-role="import" id="importBtn" type="button">匯入規劃</button>
+        <button class="btn btn-soft danger" data-role="clear" id="clearBtn" type="button">清空規劃</button>
       </div>
     </header>
 
-    <div class="views">
-      <section class="view-panel panel" id="catalogView" data-view="catalog">
-        <div class="panel-header">
-          <div>
-            <h2>課程目錄</h2>
-            <p>輸入課名、教師、課號或上課時間即可快速篩選，並將課程加入右側的規劃分頁。</p>
-          </div>
-          <div class="chips" id="activeFilters"></div>
+    <div class="views panel layout-1">
+      <div class="views-tabs">
+        <div class="view-tabs" role="tablist" aria-label="主要分頁">
+          <button class="view-tab" id="catalogTab" type="button" role="tab" aria-selected="true" aria-controls="catalogView">課程目錄</button>
+          <button class="view-tab" id="plannerTab" type="button" role="tab" aria-selected="false" aria-controls="plannerView">我的規劃</button>
         </div>
+      </div>
+
+      <section class="view-panel" id="catalogView" data-view="catalog">
         <div class="content">
+          <div class="chips catalog-filters" id="activeFilters"></div>
           <div class="toolbar">
             <div class="toolbar-grid">
               <div class="field">
@@ -943,31 +1129,25 @@
                   <label id="slotPickerLabel" style="cursor:pointer; user-select:none; flex:1;">時段勾選<span style="font-size:0.85em; color:var(--muted);">（勾選多節後只顯示完全在勾選時段內的課程）</span></label>
                   <button id="toggleSlotPicker" type="button" style="background:none; border:none; cursor:pointer; font-size:1.2em; padding:0 4px; color:var(--text);">▼</button>
                 </div>
-                <div id="slotPickerContainer" style="transition: max-height 0.3s ease; max-height: none; overflow: hidden; border-radius:8px; background:rgba(255,255,255,0.9); border:1px solid rgba(0,0,0,0.04);">
-                  <div id="slotPicker" style="display: grid; grid-template-columns: 50px repeat(7, minmax(0,1fr)); gap:6px; padding:8px;">
-                    <div style="font-weight:600; display:flex; align-items:center; justify-content:center;">節次\星期</div>
-                    <div style="text-align:center; font-weight:600;">一</div>
-                    <div style="text-align:center; font-weight:600;">二</div>
-                    <div style="text-align:center; font-weight:600;">三</div>
-                    <div style="text-align:center; font-weight:600;">四</div>
-                    <div style="text-align:center; font-weight:600;">五</div>
-                    <div style="text-align:center; font-weight:600;">六</div>
-                    <div style="text-align:center; font-weight:600;">日</div>
-                  </div>
-                  <div style="margin:0 8px 8px 8px; display:flex; gap:8px;">
-                    <button class="btn ghost" id="clearSlotSelection" type="button">清除時段勾選</button>
-                    <button class="btn secondary" id="invertSlotSelection" type="button">反向選取</button>
-                    <button class="btn ghost" id="freeSlotSearch" type="button">空堂查詢</button>
-                  </div>
+                <div id="slotPickerContainer" style="border: 1px solid var(--line); border-radius: 12px; background: white; overflow: hidden;">
+                    <!-- JS 會自動將生成的 grid 插入此處 -->
+                    <div id="slotPicker"></div>
+
+                    <!-- 按鈕區域：新增了 slot-actions 類別，確保按鈕靠右整齊 -->
+                    <div class="slot-actions">
+                        <button class="btn secondary" id="clearSlotSelection" type="button">清除時段勾選</button>
+                        <button class="btn secondary" id="invertSlotSelection" type="button">反向選取</button>
+                        <button class="btn primary" id="freeSlotSearch" type="button">空堂查詢</button>
+                    </div>
                 </div>
               </div>
               <div class="field">
                 <label for="deptSelect">系所/分類</label>
-                <button id="deptSelectToggle" type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border:1px solid rgba(0,0,0,0.08); border-radius:10px; background:rgba(255,255,255,0.95); cursor:pointer;">
+                <button id="deptSelectToggle" type="button" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,0.95); cursor:pointer;">
                   <span id="deptSelectLabel">全部系所/分類</span>
                   <span aria-hidden="true">▾</span>
                 </button>
-                <div id="deptSelectMenu" style="display:none; margin-top:8px; max-height:180px; overflow:auto; padding:8px; border:1px solid rgba(0,0,0,0.08); border-radius:10px; background:rgba(255,255,255,0.98);"></div>
+                <div id="deptSelectMenu" style="display:none; margin-top:8px; max-height:180px; overflow:auto; padding:8px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,0.98);"></div>
               </div>
               <div class="field">
                 <label for="semesterSelect">學期</label>
@@ -1013,13 +1193,7 @@
         </div>
       </section>
 
-      <section class="view-panel panel panel-sticky" id="plannerView" data-view="planner" hidden>
-        <div class="panel-header">
-          <div>
-            <h2>我的規劃</h2>
-            <p>已選課程、總學分、衝突檢查與週課表集中顯示，並會自動保存到本機。</p>
-          </div>
-        </div>
+      <section class="view-panel" id="plannerView" data-view="planner" hidden>
         <div class="content">
           <section class="summary-grid" id="summaryGrid" aria-live="polite"></section>
           <div id="plannerSummary" class="chips" style="margin-top: 14px;"></div>
