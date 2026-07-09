@@ -95,7 +95,7 @@ const state = {
     sort: "name",
     pageSize: (() => {
         const stored = Number(localStorage.getItem("ntnu-course-page-size"));
-        return PAGE_SIZE_OPTIONS.includes(stored) ? stored : 48;
+        return PAGE_SIZE_OPTIONS.includes(stored) ? stored : 10;
     })(),
     currentPage: 1,
     activeView: localStorage.getItem("ntnu-course-plan-view") || "catalog"
