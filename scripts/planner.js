@@ -468,9 +468,19 @@ function wireEvents() {
             }, { passive: false });
 
             picker.addEventListener('touchmove', (e) => {
-                if (!isPainting) return;
-                const target = getCellFromTouch(e);
-                if (target) applySlot(target, paintSelect);
+                // 取得當前手指點位
+                const touch = e.touches[0];
+
+                // 從當前點位取得元素
+                const el = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                // 如果點到的是內部元素 (例如格子裡的文字)，利用 .closest 向上尋找
+                const target = el ? el.closest('.slot-cell[data-day]') : null;
+
+                // 檢查是否有選中目標且正在繪製中
+                if (isPainting && target && target !== picker) {
+                    applySlot(target, paintSelect);
+                }
             }, { passive: false });
 
             // 統一觸控結束與滑鼠釋放的處理
