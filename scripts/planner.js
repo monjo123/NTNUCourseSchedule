@@ -446,8 +446,35 @@ function wireEvents() {
                 if (!isPainting) return;
                 isPainting = false;
                 picker.classList.remove('is-dragging');
-                renderResults();
+                renderResults(); // 確保重新繪製結果
+                syncSlotPickerUI(); // 同步 UI 狀態
             }
+            // 輔助函式：取得手指位置對應的 DOM 元素
+            function getCellFromTouch(e) {
+                const touch = e.touches[0];
+                const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                return el ? el.closest('.slot-cell[data-day]') : null;
+            }
+
+            // 新增觸控監聽
+            picker.addEventListener('touchstart', (e) => {
+                const target = getCellFromTouch(e);
+                if (!target) return;
+                e.preventDefault(); // 防止頁面滾動
+                isPainting = true;
+                paintSelect = !state.selectedSlots.has(slotKey(target));
+                picker.classList.add('is-dragging');
+                applySlot(target, paintSelect);
+            }, { passive: false });
+
+            picker.addEventListener('touchmove', (e) => {
+                if (!isPainting) return;
+                const target = getCellFromTouch(e);
+                if (target) applySlot(target, paintSelect);
+            }, { passive: false });
+
+            // 統一觸控結束與滑鼠釋放的處理
+            window.addEventListener('touchend', finishPainting);
 
             picker.addEventListener('dragstart', (e) => e.preventDefault());
 
@@ -542,6 +569,7 @@ function wireEvents() {
                     labelText.style.cursor = 'pointer';
                     labelText.addEventListener('click', toggleAction);
                 }
+                
             }
         }
     } catch (e) {
