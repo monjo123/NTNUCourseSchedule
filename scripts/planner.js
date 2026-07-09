@@ -1,6 +1,7 @@
 const STORAGE_KEY = "ntnu-course-plan-v1";
 const SEMESTER_INDEX_URL = "./public/semesters.json";
 const COURSE_SOURCES = ["./public/courses.non-empty.json", "./public/courses.json"];
+const SYLLABUS_BASE_URL = "https://courseap2.itc.ntnu.edu.tw/acadmOpenCourse/SyllabusCtrl";
 const DEFAULT_SEMESTER = localStorage.getItem('ntnu-course-semester');
 const DAYS = ["一", "二", "三", "四", "五", "六", "日"];
 const DAY_LABELS = {
@@ -814,9 +815,17 @@ function renderResults() {
             <h3>${escapeHtml(course.chn_name || course.eng_name || "未命名課程")}</h3>
             <p>${escapeHtml(course.eng_name || "")}</p>
           </div>
-          <button class="btn ${isSelected ? "danger" : "primary"}" type="button" data-action="toggle" data-id="${escapeHtml(course.serial_no)}">
-            ${isSelected ? "移除" : "加入規劃"}
-          </button>
+                    <div class="course-top-actions">
+                        <button class="btn ${isSelected ? "danger" : "primary"}" type="button" data-action="toggle" data-id="${escapeHtml(course.serial_no)}">
+                            ${isSelected ? "移除" : "加入規劃"}
+                        </button>
+                        <a
+                            class="btn secondary"
+                            href="${escapeHtml(buildSyllabusUrl(course))}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >課程綱要</a>
+                    </div>
         </div>
 
         <div class="meta-grid">
@@ -1484,6 +1493,26 @@ function normalizeCourse(course) {
             .join(" ")
             .toLowerCase()
     };
+}
+
+function buildSyllabusUrl(course) {
+    const [semesterYear, semesterTerm] = String(state.semester || "").split("_");
+
+    const year = String(course?.acadm_year || semesterYear || "").trim();
+    const term = String(course?.acadm_term || semesterTerm || "").trim();
+
+    const params = new URLSearchParams({
+        year,
+        term,
+        courseCode: String(course?.course_code || "").trim(),
+        courseGroup: String(course?.course_group || "").trim(),
+        deptCode: String(course?.dept_code || "").trim(),
+        formS: String(course?.form_s || "").trim(),
+        classes1: String(course?.classes1 || course?.classes || "").trim(),
+        deptGroup: String(course?.dept_group || "").trim()
+    });
+
+    return `${SYLLABUS_BASE_URL}?${params.toString()}`;
 }
 
 function colorForCourse(serialNo) {
