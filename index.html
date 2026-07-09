@@ -368,6 +368,24 @@
       margin: 18px 0 14px;
     }
 
+    .results-head .page-size-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .results-head .page-size-inline select {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(33,25,16,0.08);
+      background: rgba(255,255,255,0.9);
+      font-size: 0.9rem;
+      color: var(--text);
+      min-width: 86px;
+      height: 36px;
+      cursor: pointer;
+    }
+
     .results-head strong {
       font-size: 1rem;
     }
@@ -375,6 +393,50 @@
     .results-grid {
       display: grid;
       gap: 12px;
+    }
+
+    .pagination-panel {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .pagination-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .pagination {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .page-btn {
+      min-width: 2.5rem;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(33, 25, 16, 0.12);
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(19, 78, 74, 0.35);
+      box-shadow: 0 10px 22px rgba(64, 45, 22, 0.08);
+    }
+
+    .page-btn.is-active {
+      background: linear-gradient(135deg, var(--accent), #0f766e);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 12px 26px rgba(19, 78, 74, 0.22);
     }
 
     .course-card,
@@ -913,21 +975,31 @@
                 <label for="sortSelect">排序</label>
                 <select id="sortSelect"></select>
               </div>
+              <!-- pageSizeSelect moved next to results header for compact layout -->
             </div>
           </div>
 
           <div class="results-head">
             <strong id="resultsLabel">載入中...</strong>
-            <div class="chips">
-              <span class="chip" id="courseCountChip">0 門課程</span>
-              <span class="chip soft" id="visibleCountChip">0 筆顯示</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="chips">
+                <span class="chip" id="courseCountChip">0 門課程</span>
+                <span class="chip soft" id="visibleCountChip">0 筆顯示</span>
+              </div>
+              <div class="page-size-inline">
+                <label for="pageSizeSelect" class="muted" style="font-size:0.9rem;">每頁</label>
+                <select id="pageSizeSelect"></select>
+              </div>
             </div>
           </div>
 
           <div id="results" class="results-grid"></div>
-          <div class="hero-actions" style="margin-top: 16px;">
-            <button class="btn secondary" id="loadMoreBtn" type="button">載入更多</button>
-            <button class="btn ghost" id="resetBtn" type="button">重設篩選</button>
+          <div class="pagination-panel">
+            <div class="pagination-meta">
+              <span id="paginationLabel" class="muted">第 1 頁</span>
+              <button class="btn ghost" id="resetBtn" type="button">重設篩選</button>
+            </div>
+            <div class="pagination" id="pageButtons" aria-label="課程頁碼"></div>
           </div>
         </div>
       </section>

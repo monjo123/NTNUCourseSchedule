@@ -28,6 +28,7 @@ const SECTION_ORDER = {
 const SECTION_ORDER_REVERSE = Object.fromEntries(
     Object.entries(SECTION_ORDER).map(([label, order]) => [order, label])
 );
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 500];
 
 function compareSemesters(left, right) {
     const [leftYear, leftTerm] = String(left || "").split("_").map((value) => Number(value) || 0);
@@ -86,7 +87,11 @@ const state = {
     dept: new Set(),
     kind: "ALL",
     sort: "name",
-    visibleCount: 48,
+    pageSize: (() => {
+        const stored = Number(localStorage.getItem("ntnu-course-page-size"));
+        return PAGE_SIZE_OPTIONS.includes(stored) ? stored : 48;
+    })(),
+    currentPage: 1,
     activeView: localStorage.getItem("ntnu-course-plan-view") || "catalog"
 };
 
@@ -103,11 +108,13 @@ const elements = {
     deptSelectMenu: document.getElementById("deptSelectMenu"),
     semesterSelect: document.getElementById("semesterSelect"),
     sortSelect: document.getElementById("sortSelect"),
+    pageSizeSelect: document.getElementById("pageSizeSelect"),
+    pageButtons: document.getElementById("pageButtons"),
+    paginationLabel: document.getElementById("paginationLabel"),
     resultsLabel: document.getElementById("resultsLabel"),
     courseCountChip: document.getElementById("courseCountChip"),
     visibleCountChip: document.getElementById("visibleCountChip"),
     results: document.getElementById("results"),
-    loadMoreBtn: document.getElementById("loadMoreBtn"),
     resetBtn: document.getElementById("resetBtn"),
     clearBtn: document.getElementById("clearBtn"),
     exportBtn: document.getElementById("exportBtn"),
@@ -178,7 +185,7 @@ function wireEvents() {
 
     elements.searchInput.addEventListener("input", () => {
         state.query = elements.searchInput.value.trim().toLowerCase();
-        state.visibleCount = 48;
+        state.currentPage = 1;
         renderAll();
     });
 
@@ -204,7 +211,7 @@ function wireEvents() {
                     checkbox.checked = checkbox.value === "ALL";
                 });
                 updateDeptSelectLabel();
-                state.visibleCount = 48;
+                state.currentPage = 1;
                 renderAll();
                 return;
             }
@@ -224,7 +231,7 @@ function wireEvents() {
             }
 
             updateDeptSelectLabel();
-            state.visibleCount = 48;
+            state.currentPage = 1;
             renderAll();
         });
         // support search/filter within dept menu (delegated after populateFilters)
@@ -247,20 +254,26 @@ function wireEvents() {
 
     elements.sortSelect.addEventListener("change", () => {
         state.sort = elements.sortSelect.value;
+        state.currentPage = 1;
         renderAll();
     });
 
-    elements.loadMoreBtn.addEventListener("click", () => {
-        state.visibleCount += 48;
-        renderResults();
-    });
+    if (elements.pageSizeSelect) {
+        elements.pageSizeSelect.addEventListener("change", () => {
+            const pageSize = Number(elements.pageSizeSelect.value) || 48;
+            state.pageSize = pageSize;
+            localStorage.setItem("ntnu-course-page-size", String(pageSize));
+            state.currentPage = 1;
+            renderAll();
+        });
+    }
 
     elements.resetBtn.addEventListener("click", () => {
         state.query = "";
         state.dept = new Set();
         state.kind = "ALL";
         state.sort = "name";
-        state.visibleCount = 48;
+        state.currentPage = 1;
         elements.searchInput.value = "";
         if (elements.deptSelectMenu) {
             elements.deptSelectMenu.querySelectorAll(".dept-checkbox").forEach((checkbox) => {
@@ -289,6 +302,7 @@ function wireEvents() {
         state.selectedSlots.clear();
         // Load courses for new semester and render
         try {
+            state.currentPage = 1;
             await loadCourses();
             renderAll();
         } catch (err) {
@@ -538,6 +552,13 @@ function renderStaticControls() {
         .map(([value, label]) => `<option value="${value}">${label}</option>`)
         .join("");
 
+    if (elements.pageSizeSelect) {
+        elements.pageSizeSelect.innerHTML = PAGE_SIZE_OPTIONS
+            .map((value) => `<option value="${value}">${value} 筆/頁</option>`)
+            .join("");
+        elements.pageSizeSelect.value = String(state.pageSize || 48);
+    }
+
     // Set semester select to current state
     try {
         if (elements.semesterSelect) elements.semesterSelect.value = state.semester;
@@ -692,14 +713,53 @@ function renderSummary() {
 
 function renderResults() {
     const filtered = getFilteredCourses();
-    const visible = filtered.slice(0, state.visibleCount);
+    const pageSize = Math.max(1, Number(state.pageSize) || 48);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    state.currentPage = Math.min(Math.max(1, Number(state.currentPage) || 1), totalPages);
+    const startIndex = (state.currentPage - 1) * pageSize;
+    const visible = filtered.slice(startIndex, startIndex + pageSize);
     const selectedIds = state.selectedIds;
     const conflictSet = getConflictSet(getSelectedCourses());
 
     elements.resultsLabel.textContent = filtered.length ? `找到 ${filtered.length} 門課程` : "沒有符合條件的課程";
     elements.courseCountChip.textContent = `${state.courses.length} 門課程`;
-    elements.visibleCountChip.textContent = `${visible.length}/${filtered.length || 0} 筆顯示`;
-    elements.loadMoreBtn.disabled = visible.length >= filtered.length;
+    elements.visibleCountChip.textContent = filtered.length
+        ? `第 ${state.currentPage}/${totalPages} 頁，顯示 ${startIndex + 1}-${startIndex + visible.length} / ${filtered.length}`
+        : `第 0/0 頁，顯示 0/0`;
+
+    if (elements.paginationLabel) {
+        elements.paginationLabel.textContent = filtered.length
+            ? `第 ${state.currentPage} 頁，共 ${totalPages} 頁`
+            : "沒有可顯示的頁碼";
+    }
+
+    if (elements.pageButtons) {
+        elements.pageButtons.innerHTML = filtered.length
+            ? Array.from({ length: totalPages }, (_, index) => {
+                const pageNumber = index + 1;
+                const isActive = pageNumber === state.currentPage;
+                return `
+          <button
+            type="button"
+            class="page-btn${isActive ? " is-active" : ""}"
+            data-page="${pageNumber}"
+            aria-current="${isActive ? "page" : "false"}"
+          >
+            ${pageNumber}
+          </button>
+        `;
+            }).join("")
+            : `<span class="muted">目前沒有可切換的頁碼</span>`;
+
+        elements.pageButtons.querySelectorAll("[data-page]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextPage = Number(button.dataset.page) || 1;
+                if (nextPage === state.currentPage) return;
+                state.currentPage = nextPage;
+                renderResults();
+            });
+        });
+    }
 
     if (visible.length === 0) {
         elements.results.innerHTML = `
