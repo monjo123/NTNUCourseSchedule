@@ -30,6 +30,12 @@ const SECTION_ORDER_REVERSE = Object.fromEntries(
 );
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 500];
 
+function on(element, eventName, handler) {
+    if (element) {
+        element.addEventListener(eventName, handler);
+    }
+}
+
 function compareSemesters(left, right) {
     const [leftYear, leftTerm] = String(left || "").split("_").map((value) => Number(value) || 0);
     const [rightYear, rightTerm] = String(right || "").split("_").map((value) => Number(value) || 0);
@@ -142,10 +148,22 @@ const elements = {
 
 document.documentElement.lang = "zh-Hant";
 
-init().catch((error) => {
-    elements.resultsLabel.textContent = "載入失敗";
-    elements.results.innerHTML = `<div class="error">無法載入課程資料：${escapeHtml(error.message)}</div>`;
-});
+const startApp = () => {
+    init().catch((error) => {
+        if (elements.resultsLabel) {
+            elements.resultsLabel.textContent = "載入失敗";
+        }
+        if (elements.results) {
+            elements.results.innerHTML = `<div class="error">無法載入課程資料：${escapeHtml(error.message)}</div>`;
+        }
+    });
+};
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startApp, { once: true });
+} else {
+    startApp();
+}
 
 async function init() {
     wireEvents();
@@ -180,17 +198,17 @@ async function init() {
 }
 
 function wireEvents() {
-    elements.catalogTab.addEventListener("click", () => setActiveView("catalog"));
-    elements.plannerTab.addEventListener("click", () => setActiveView("planner"));
+    on(elements.catalogTab, "click", () => setActiveView("catalog"));
+    on(elements.plannerTab, "click", () => setActiveView("planner"));
 
-    elements.searchInput.addEventListener("input", () => {
+    on(elements.searchInput, "input", () => {
         state.query = elements.searchInput.value.trim().toLowerCase();
         state.currentPage = 1;
         renderAll();
     });
 
     if (elements.deptSelectToggle && elements.deptSelectMenu) {
-        elements.deptSelectToggle.addEventListener("click", () => {
+        on(elements.deptSelectToggle, "click", () => {
             const isNowShown = elements.deptSelectMenu.style.display === "none" ? "block" : "none";
             elements.deptSelectMenu.style.display = isNowShown;
             // focus the search box when menu opens
@@ -200,7 +218,7 @@ function wireEvents() {
             }
         });
 
-        elements.deptSelectMenu.addEventListener("change", (event) => {
+        on(elements.deptSelectMenu, "change", (event) => {
             const target = event.target;
             if (!target || !target.classList.contains("dept-checkbox")) return;
 
@@ -235,7 +253,7 @@ function wireEvents() {
             renderAll();
         });
         // support search/filter within dept menu (delegated after populateFilters)
-        elements.deptSelectMenu.addEventListener('input', (e) => {
+        on(elements.deptSelectMenu, 'input', (e) => {
             const target = e.target;
             if (!target) return;
             if (target.id !== 'deptFilterInput') return;
@@ -252,14 +270,14 @@ function wireEvents() {
     }
 
 
-    elements.sortSelect.addEventListener("change", () => {
+    on(elements.sortSelect, "change", () => {
         state.sort = elements.sortSelect.value;
         state.currentPage = 1;
         renderAll();
     });
 
     if (elements.pageSizeSelect) {
-        elements.pageSizeSelect.addEventListener("change", () => {
+        on(elements.pageSizeSelect, "change", () => {
             const pageSize = Number(elements.pageSizeSelect.value) || 48;
             state.pageSize = pageSize;
             localStorage.setItem("ntnu-course-page-size", String(pageSize));
@@ -268,24 +286,28 @@ function wireEvents() {
         });
     }
 
-    elements.resetBtn.addEventListener("click", () => {
+    on(elements.resetBtn, "click", () => {
         state.query = "";
         state.dept = new Set();
         state.kind = "ALL";
         state.sort = "name";
         state.currentPage = 1;
-        elements.searchInput.value = "";
+        if (elements.searchInput) {
+            elements.searchInput.value = "";
+        }
         if (elements.deptSelectMenu) {
             elements.deptSelectMenu.querySelectorAll(".dept-checkbox").forEach((checkbox) => {
                 checkbox.checked = checkbox.value === "ALL";
             });
         }
         updateDeptSelectLabel();
-        elements.sortSelect.value = "name";
+        if (elements.sortSelect) {
+            elements.sortSelect.value = "name";
+        }
         renderAll();
     });
 
-    elements.semesterSelect.addEventListener('change', async (e) => {
+    on(elements.semesterSelect, 'change', async (e) => {
         const val = e.target.value;
         if (!val || val === state.semester) return;
         if (!confirm('切換學期會清空目前的規劃，是否要繼續？')) {
@@ -310,22 +332,22 @@ function wireEvents() {
         }
     });
 
-    elements.clearBtn.addEventListener("click", () => {
+    on(elements.clearBtn, "click", () => {
         state.selectedIds.clear();
         saveSelection();
         renderAll();
     });
 
-    elements.exportBtn.addEventListener("click", () => {
+    on(elements.exportBtn, "click", () => {
         const selected = getSelectedCourses();
         exportScheduleTable();
     });
 
-    elements.importBtn.addEventListener("click", () => {
+    on(elements.importBtn, "click", () => {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = ".csv";
-        input.addEventListener("change", (e) => {
+        on(input, "change", (e) => {
             const file = e.target.files[0];
             if (file) {
                 importScheduleTable(file);
@@ -335,10 +357,10 @@ function wireEvents() {
     });
 
     // Modal event listeners
-    elements.modalCloseBtn.addEventListener("click", closeCourseDetail);
-    elements.modalDoneBtn.addEventListener("click", closeCourseDetail);
+    on(elements.modalCloseBtn, "click", closeCourseDetail);
+    on(elements.modalDoneBtn, "click", closeCourseDetail);
 
-    elements.modalRemoveBtn.addEventListener("click", () => {
+    on(elements.modalRemoveBtn, "click", () => {
         const course = elements.courseDetailModal.__currentCourse;
         if (course) {
             toggleCourse(course.serial_no);
@@ -346,7 +368,7 @@ function wireEvents() {
         }
     });
 
-    elements.courseDetailModal.addEventListener("click", (e) => {
+    on(elements.courseDetailModal, "click", (e) => {
         if (e.target === elements.courseDetailModal) {
             closeCourseDetail();
         }
